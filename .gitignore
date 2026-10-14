@@ -7,3 +7,6 @@ dist/
 coverage/
 .supabase/
 *.log
+
+supabase/.temp/
+supabase/.branches/
