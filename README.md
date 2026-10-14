@@ -115,6 +115,25 @@ select public.get_club_heads('00000000-0000-0000-0000-000000000000'::uuid);
 - `get_club_heads(club_id)` returns only active head `id` and `full_name` values for a club.
 - `assign_club_head(user_id, club_id)`, `revoke_club_head(user_id, club_id)`, and `set_user_role(user_id, role)` are the admin-only write boundaries for RBAC.
 - `create_club(name, description, category, contact_email)`, `update_club(club_id, name, description, category, contact_email)`, and `set_club_active(club_id, is_active)` are the admin-only club write boundaries. Club names are case-insensitively unique and clubs are never deleted.
+- `send_notification(user_id, type, title, message, related_event_id)` is a trusted, in-app-only delivery helper. It is callable from Member 2's `SECURITY DEFINER` RPCs and `service_role`, not from browser sessions.
+- `send_notification_bulk(user_ids, type, title, message, related_event_id)` performs the same trusted delivery for distinct, non-null user ids without querying registrations.
+- `get_active_student_ids()` returns active student ids for event publication fan-out. It has the same trusted-only execute restriction.
+- `mark_notification_read(notification_id)` and `mark_all_notifications_read()` are the only notification read-state write boundaries available to logged-in users.
+- The web notification link contract is `/events/:id`. Until Member 2 registers that detail route, event notifications intentionally render without a link.
+
+SQL Editor smoke test (run as the project owner or service role, never from browser code):
+
+```sql
+select public.send_notification(
+  '10000000-0000-0000-0000-000000000003'::uuid,
+  'event_published',
+  'Test notification',
+  'This is an in-app delivery smoke test.',
+  null::uuid
+);
+```
+
+The `20261014001000_m1_notifications_realtime.sql` migration adds `public.notifications` to the `supabase_realtime` publication when that standard publication exists. On a hosted project, confirm it with `select * from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'notifications';`. If it is absent, run `alter publication supabase_realtime add table public.notifications;` once in the SQL Editor. RLS still filters Realtime rows to the current user.
 
 ## Security decisions in this scaffold
 
@@ -126,6 +145,7 @@ select public.get_club_heads('00000000-0000-0000-0000-000000000000'::uuid);
 - `log_audit` and `send_notification` are the atomic insertion boundaries for their respective tables.
 - The signup trigger creates a profile from `raw_user_meta_data.full_name` and falls back to the email local-part.
 - User and role administration is available at `/roles-permissions` only to users with `users.manage`; role writes go through guarded Postgres RPCs and direct table writes remain revoked.
+- The notification inbox is available at `/notifications`; the app layout bell shows the latest five notifications and refetches on window focus when Realtime is unavailable.
 
 ## Ordered vertical-slice roadmap
 
