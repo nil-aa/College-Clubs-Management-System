@@ -6,24 +6,32 @@ begin;
 
 do $$
 begin
-  perform plan(10);
+  perform plan(12);
 
   perform set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
   perform ok(
-    public.has_role('president', '20000000-0000-0000-0000-000000000001'::uuid),
-    'president role is true in its assigned club'
+    public.has_role('club_head', '20000000-0000-0000-0000-000000000001'::uuid),
+    'club head role is true in its assigned club'
   );
   perform ok(
-    not public.has_role('president', '20000000-0000-0000-0000-000000000099'::uuid),
-    'president role is false in another club'
+    not public.has_role('club_head', '20000000-0000-0000-0000-000000000099'::uuid),
+    'club head role is false in another club'
   );
   perform ok(
-    public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000001'::uuid),
-    'president has a club-scoped management permission in its club'
+    public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000001'::uuid),
+    'club head has a club-scoped management permission in its club'
   );
   perform ok(
-    not public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000099'::uuid),
-    'president cannot use the same permission in another club'
+    not public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000099'::uuid),
+    'club head cannot use the same permission in another club'
+  );
+  perform ok(
+    public.can_manage_club('20000000-0000-0000-0000-000000000001'::uuid),
+    'club head can manage their assigned club'
+  );
+  perform ok(
+    not public.can_manage_club('20000000-0000-0000-0000-000000000099'::uuid),
+    'club head cannot manage another club'
   );
   perform ok(
     public.is_club_member('20000000-0000-0000-0000-000000000001'::uuid),
@@ -32,7 +40,7 @@ begin
 
   perform set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000003', true);
   perform ok(
-    not public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000001'::uuid),
+    not public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000001'::uuid),
     'regular member does not have manage permission'
   );
 
@@ -52,7 +60,7 @@ begin
     'log_audit returns an audit id'
   );
   perform ok(
-    public.send_notification('10000000-0000-0000-0000-000000000002'::uuid, 'test', 'Test notification', 'Hello', array['in_app'], '{}'::jsonb) is not null,
+    public.send_notification('10000000-0000-0000-0000-000000000002'::uuid, 'event_published', 'Test notification', 'Hello', array['in_app'], '{"event_id":"30000000-0000-0000-0000-000000000001"}'::jsonb) is not null,
     'send_notification returns a notification id'
   );
 end;
