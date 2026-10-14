@@ -302,6 +302,54 @@ export type Database = {
           registration_count: number;
         }>;
       };
+      list_student_events: {
+        Args: {
+          p_search?: string | null;
+          p_club_id?: string | null;
+          p_category?: string | null;
+          p_start_from?: string | null;
+          p_start_to?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
+      get_student_event: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
       update_event: {
         Args: {
           p_event_id: string;

@@ -2,6 +2,8 @@ export type { Database, Json, NotificationType } from './database.types';
 export {
   createEvent,
   listManagedEvents,
+  listStudentEvents,
+  getStudentEvent,
   getManagedEvent,
   updateEvent,
   publishEvent,
@@ -9,6 +11,9 @@ export {
   cancelEvent,
   type EventInput,
   type ManagedEvent,
+  type StudentEvent,
+  type StudentEventOptions,
+  type RegistrationAvailability,
 } from './events';
 export {
   hasPermission,

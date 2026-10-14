@@ -4,6 +4,23 @@ import type { Database } from './database.types';
 export type ManagedEvent =
   Database['public']['Functions']['list_managed_events']['Returns'][number];
 
+export type RegistrationAvailability = 'AVAILABLE' | 'FULL' | 'CLOSED';
+
+export type StudentEvent = Omit<
+  Database['public']['Functions']['list_student_events']['Returns'][number],
+  'registration_availability'
+> & { registration_availability: RegistrationAvailability };
+
+export type StudentEventOptions = {
+  search?: string | null;
+  clubId?: string | null;
+  category?: string | null;
+  startFrom?: string | null;
+  startTo?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
 export type EventInput = {
   clubId: string;
   title: string;
@@ -43,6 +60,32 @@ export async function listManagedEvents(
   });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listStudentEvents(
+  client: AppSupabaseClient,
+  options: StudentEventOptions = {},
+): Promise<StudentEvent[]> {
+  const { data, error } = await client.rpc('list_student_events', {
+    p_search: options.search ?? null,
+    p_club_id: options.clubId ?? null,
+    p_category: options.category ?? null,
+    p_start_from: options.startFrom ?? null,
+    p_start_to: options.startTo ?? null,
+    p_limit: options.limit ?? 50,
+    p_offset: options.offset ?? 0,
+  });
+  if (error) throw error;
+  return (data ?? []) as StudentEvent[];
+}
+
+export async function getStudentEvent(
+  client: AppSupabaseClient,
+  eventId: string,
+): Promise<StudentEvent | null> {
+  const { data, error } = await client.rpc('get_student_event', { p_event_id: eventId });
+  if (error) throw error;
+  return (data?.[0] as StudentEvent | undefined) ?? null;
 }
 
 export async function getManagedEvent(client: AppSupabaseClient, eventId: string) {
