@@ -113,7 +113,7 @@ The `events`, `event_registrations`, `attendance`, `participant_lists`, `od_shee
 | --------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `profiles`                                                | M1                               | The profile owner; admins only where the users-management permission is required                         |
 | `roles`, `permissions`, `role_permissions`, `user_roles`  | M1                               | Authenticated users only for permission checks; assignments are limited to the user or authorized admins |
-| `clubs`                                                   | M1                               | Authenticated users for active clubs; admins may read inactive clubs                                     |
+| `clubs`                                                   | M1                               | Authenticated users for active clubs; admins and assigned Club Heads may read inactive clubs             |
 | `club_memberships`                                        | M1                               | The member and authorized club workflows                                                                 |
 | `notifications`                                           | M1                               | Only the notification owner; writes use `send_notification`, and owners may update only `is_read`        |
 | `audit_logs`                                              | M1                               | The actor or users with audit-read permission; inserts use `log_audit` only                              |
@@ -159,6 +159,10 @@ Signatures:
 - `has_permission(p_permission text, p_club_id uuid default null) returns boolean`: checks an active permission at the requested scope; admins pass globally.
 - `is_club_member(p_club_id uuid) returns boolean`: checks active membership for the current user.
 - `can_manage_club(p_club_id uuid) returns boolean`: returns true for an admin or a Club Head assigned to that club.
+- `get_club_heads(p_club_id uuid) returns table(id uuid, full_name text)`: returns only active Club Head ids and names for a club; it never exposes other profile columns.
+- `create_club(p_name text, p_description text, p_category text, p_contact_email text) returns uuid`: admin-only club creation boundary.
+- `update_club(p_club_id uuid, p_name text, p_description text, p_category text, p_contact_email text) returns uuid`: admin-only club update boundary.
+- `set_club_active(p_club_id uuid, p_is_active boolean) returns boolean`: admin-only activation boundary; deletion is not supported.
 - `log_audit(p_action text, p_entity_type text, p_entity_id uuid, p_metadata jsonb) returns bigint`: appends an audit record as the current actor.
 - `send_notification(p_user_id uuid, p_type text, p_title text, p_message text, p_channels text[], p_metadata jsonb) returns uuid`: appends an allowed in-app event notification and returns its id.
 
@@ -183,6 +187,12 @@ perform public.send_notification(
 ```
 
 Do not insert directly into `audit_logs` or `notifications` from a client. The notification helper accepts these event types only: `event_published`, `registration_confirmed`, `registration_cancelled`, `event_postponed`, and `event_cancelled`. Email delivery remains an Edge Function concern.
+
+The existing RBAC assignment RPCs also retain their internal notification types (`club_head.assigned`, `club_head.revoked`, and `user_role.changed`) for backwards-compatible in-app notices. New event workflows must use the five event types above.
+
+## Club details event placeholder
+
+The Member 1 web contract includes `<EventsSection clubId={clubId} />` on the club detail page. It is currently a visual placeholder and performs no events-table query. Member 2 may replace its implementation once the events schema exists, keeping `clubId: string` as the input contract.
 
 ## Notifications to wire up
 

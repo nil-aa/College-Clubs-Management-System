@@ -8,7 +8,7 @@ export type Role = {
   created_at: string;
 };
 
-export type ClubOption = { id: string; name: string; status: string };
+export type ClubOption = { id: string; name: string; status: string; is_active?: boolean };
 
 export type UserOption = { id: string; full_name: string };
 

@@ -34,7 +34,7 @@ export function RoleManagementPage() {
         .select('*')
         .in('code', ['student', 'club_head', 'admin'])
         .order('name'),
-      supabase.from('clubs').select('id, name, status').order('name'),
+      supabase.from('clubs').select('id, name, status, is_active').order('name'),
       supabase.from('user_roles').select('*'),
     ]);
     const failed = [rolesResult, clubsResult, assignmentsResult].find((result) => result.error);

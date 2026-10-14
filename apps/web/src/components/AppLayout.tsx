@@ -15,6 +15,7 @@ const ownNav: PermissionNav[] = [
     permission: 'users.manage',
     clubId: null,
   },
+  { label: 'Manage Clubs', to: '/manage-clubs', permission: 'users.manage', clubId: null },
   { label: 'Clubs', to: '/clubs', permission: 'clubs.read' },
   { label: 'Memberships', to: '/memberships', permission: 'memberships.read' },
   { label: 'Recruitment', to: '/recruitment', permission: 'recruitment.read' },

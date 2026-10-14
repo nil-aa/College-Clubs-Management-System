@@ -54,6 +54,17 @@ export const profileSchema = z.object({
     .regex(/^[+()\-\s\d]*$/, 'Enter a valid phone number.'),
 });
 
+export const clubSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Enter a club name.')
+    .max(120, 'Club name must be 120 characters or fewer.'),
+  description: z.string().trim().max(2000, 'Description must be 2000 characters or fewer.'),
+  category: z.string().trim().max(80, 'Category must be 80 characters or fewer.'),
+  contactEmail: z.union([z.literal(''), emailSchema]),
+});
+
 export type FieldErrors = Record<string, string>;
 
 export function issuesToFieldErrors(issues: z.ZodIssue[]): FieldErrors {
