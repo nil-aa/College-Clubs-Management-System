@@ -11,6 +11,7 @@ import { PlaceholderPage } from './pages/PlaceholderPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SignupPage } from './pages/SignupPage';
+import { RoleManagementPage } from './pages/RoleManagementPage';
 
 export function App() {
   return (
@@ -32,6 +33,7 @@ export function App() {
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="roles-permissions" element={<RoleManagementPage />} />
               <Route path="clubs" element={<PlaceholderPage title="Clubs" />} />
               <Route path="memberships" element={<PlaceholderPage title="Memberships" />} />
               <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />

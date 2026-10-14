@@ -1,24 +1,32 @@
 begin;
 
-select plan(10);
+select plan(12);
 
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
 
 select ok(
-  public.has_role('president', '20000000-0000-0000-0000-000000000001'::uuid),
-  'president role is true in its assigned club'
+  public.has_role('club_head', '20000000-0000-0000-0000-000000000001'::uuid),
+  'club head role is true in its assigned club'
 );
 select ok(
-  not public.has_role('president', '20000000-0000-0000-0000-000000000099'::uuid),
-  'president role is false in another club'
+  not public.has_role('club_head', '20000000-0000-0000-0000-000000000099'::uuid),
+  'club head role is false in another club'
 );
 select ok(
-  public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000001'::uuid),
-  'president has a club-scoped management permission in its club'
+  public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000001'::uuid),
+  'club head has a club-scoped management permission in its club'
 );
 select ok(
-  not public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000099'::uuid),
-  'president cannot use the same permission in another club'
+  not public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000099'::uuid),
+  'club head cannot use the same permission in another club'
+);
+select ok(
+  public.can_manage_club('20000000-0000-0000-0000-000000000001'::uuid),
+  'club head can manage their assigned club'
+);
+select ok(
+  not public.can_manage_club('20000000-0000-0000-0000-000000000099'::uuid),
+  'club head cannot manage another club'
 );
 select ok(
   public.is_club_member('20000000-0000-0000-0000-000000000001'::uuid),
@@ -27,7 +35,7 @@ select ok(
 
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000003', true);
 select ok(
-  not public.has_permission('memberships.manage', '20000000-0000-0000-0000-000000000001'::uuid),
+  not public.has_permission('clubs.manage', '20000000-0000-0000-0000-000000000001'::uuid),
   'regular member does not have manage permission'
 );
 
@@ -47,7 +55,7 @@ select ok(
   'log_audit returns an audit id'
 );
 select ok(
-  public.send_notification('10000000-0000-0000-0000-000000000002'::uuid, 'test', 'Test notification', 'Hello', array['in_app'], '{}'::jsonb) is not null,
+  public.send_notification('10000000-0000-0000-0000-000000000002'::uuid, 'event_published', 'Test notification', 'Hello', array['in_app'], '{"event_id":"30000000-0000-0000-0000-000000000001"}'::jsonb) is not null,
   'send_notification returns a notification id'
 );
 

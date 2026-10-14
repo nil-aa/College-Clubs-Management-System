@@ -1,6 +1,6 @@
 # College Club Management System
 
-Monorepo scaffold for the Identity, Clubs and Membership foundation. Each future feature is intended to land as one vertical slice: migration, RLS, database tests, backend/Edge Function logic where needed, and the React UI.
+Monorepo for the reduced club management scope. Each feature is delivered as one vertical slice: migration, RLS, database tests, backend/Edge Function logic where needed, and the React UI.
 
 ## Structure
 
@@ -10,11 +10,12 @@ supabase/
   migrations/                 # timestamp_m1_* migrations owned by this module
   tests/                      # pgTAP tests
   functions/notifications/    # Deno Edge Function skeleton
+docs/schema.md                # shared cross-member schema contract
 packages/shared/              # shared Database type and typed RPC wrappers
 apps/web/                     # React + TypeScript + Vite + Tailwind shell
 ```
 
-The events and venue/finance modules are deliberately not implemented. Their web extension points are `/events` and `/bookings`; the volunteer tables keep `event_id uuid` without a foreign key until the events migration exists.
+The current scope has three roles: `student`, `club_head`, and `admin`. Club-head access is always scoped to an assigned club. The events and attendance modules are deliberately not implemented; their web extension points are `/events` and `/bookings`.
 
 ## Prerequisites
 
@@ -56,7 +57,7 @@ npm run build
 npm run dev
 ```
 
-Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. Authentication and profile pages are available at `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/profile`. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
+Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. The seeded admin is `global-admin@example.test`; Club Heads are `president@example.test` and `club-head-two@example.test`; the remaining seeded accounts are students. Authentication and profile pages are available at `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/profile`. The admin Users & Roles page is `/roles-permissions` and requires `users.manage`. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
 
 ```powershell
 supabase functions serve notifications --env-file supabase/functions/.env
@@ -72,7 +73,7 @@ Create a project in the Supabase dashboard, then from the repository root:
 npm install
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+supabase db push --include-seed
 supabase functions deploy notifications
 supabase secrets set SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 ```
@@ -90,37 +91,67 @@ npm run build
 npm run format
 ```
 
-`npm run db:test` uses the Supabase CLI test runner and therefore requires Docker. If you are working only against a hosted Supabase project, first ensure the migrations and development seed are applied, then open each matching file in `supabase/tests/editor/` in the Supabase SQL Editor and run the entire file. Each editor script collects the TAP output into one result set and wraps all writes in `begin`/`rollback`, so it leaves no test data behind. The hosted project must have the `pgtap` extension enabled.
+`npm run db:test` uses the Supabase CLI test runner and therefore requires Docker. If you are working only against a hosted Supabase project, first ensure the migrations and development seed are applied, then open each matching file in `supabase/tests/editor/` in the Supabase SQL Editor and run the entire file. Each editor script collects the TAP output into one result set and wraps all writes in `begin`/`rollback`, so it leaves no test data behind. The hosted project must have the `pgtap` extension enabled. The editor scripts are test fixtures: do not run them against production data unless you understand the temporary seed identities they use.
+
+## Shared interfaces
+
+The complete cross-member schema contract, ownership rules, status strings, ER diagram, and notification wiring are documented in [docs/schema.md](<C:/Users/Nilaa A J/Desktop/club_management_system/docs/schema.md>).
+
+These SQL helpers are the contract used by the web app and by the other team members' modules. They are security-definer functions with a fixed `search_path`; callers only receive execute access.
+
+```sql
+select public.has_role('admin');
+select public.has_role('club_head', '00000000-0000-0000-0000-000000000000'::uuid);
+select public.has_permission('clubs.manage', '00000000-0000-0000-0000-000000000000'::uuid);
+select public.is_club_member('00000000-0000-0000-0000-000000000000'::uuid);
+select public.can_manage_club('00000000-0000-0000-0000-000000000000'::uuid);
+```
+
+- `has_role(role, club_id)` checks an active global role, or the exact club-scoped Club Head assignment.
+- `has_permission(permission, club_id)` checks an active permission at the requested scope. Admins pass globally.
+- `is_club_member(club_id)` checks an active membership for the current user.
+- `can_manage_club(club_id)` is true for an admin or a Club Head assigned to that exact club.
+- `assign_club_head(user_id, club_id)`, `revoke_club_head(user_id, club_id)`, and `set_user_role(user_id, role)` are the admin-only write boundaries for RBAC.
 
 ## Security decisions in this scaffold
 
 - Every requested public table has RLS enabled and starts closed to `anon`/`authenticated` unless a policy grants access.
-- Role assignments may have `club_id = null` for global roles or a concrete club for club-scoped roles.
-- `global_admin` is recognized by `has_permission` and passes permission checks across clubs.
-- Shared helper functions are `security definer` with a fixed `search_path`; callers receive only execute privileges.
+- Role assignments may have `club_id = null` for global roles or a concrete club for a Club Head assignment. Active assignments are unique; deactivation preserves history.
+- `admin` is the only global administrator role. `global_admin` is still recognized by the compatibility helper so an existing hosted seed can be repaired before old data is migrated.
+- Club Heads receive a global role marker plus one or more active, club-scoped assignments. The marker alone grants no club-management permission.
+- Shared helper functions are `security definer` with a fixed `search_path`; callers receive only execute privileges. RBAC writes go through the admin-only RPCs.
 - `log_audit` and `send_notification` are the atomic insertion boundaries for their respective tables.
 - The signup trigger creates a profile from `raw_user_meta_data.full_name` and falls back to the email local-part.
+- User and role administration is available at `/roles-permissions` only to users with `users.manage`; role writes go through guarded Postgres RPCs and direct table writes remain revoked.
 
 ## Ordered vertical-slice roadmap
 
-1. Authentication and profiles: auth configuration, signup/profile trigger hardening, profile RLS, Vitest client/auth context tests, and login/profile UI.
-2. Roles and permissions: role administration migration/RLS, pgTAP scope matrix, admin Edge Function if needed, and role/permission UI.
-3. Clubs: club CRUD migration refinements, RLS and audit coverage, and club list/create/detail pages.
-4. Memberships: membership state transitions as an atomic SQL function, pgTAP tests, notifications, and membership management UI.
-5. Recruitment: published form schema validation, application review functions/RLS, tests, and applicant/reviewer pages.
-6. Committees: designation and assignment transitions, term constraints/RLS, tests, and committee management pages.
-7. Club dashboard: aggregate views/functions, dashboard RLS/tests, and the club overview UI.
-8. Audit logging: audit query/report functions, retention/index tests, and an audit viewer UI.
-9. Notifications: delivery preferences, provider adapter Edge Function, retry/status data, tests, and notification center UI.
-10. Event volunteers: keep the uuid seam, add the events foreign key after Teammate 2's migration, atomic capacity checks, RLS/tests, notification calls, and volunteer pages.
-11. Integration hardening: shared generated types, cross-module RLS contract tests, CI commands, and production deployment checks.
+1. Authentication and profiles: auth configuration, signup/profile trigger hardening, profile fields and RLS, Vitest client/auth context tests, and login/profile UI.
+2. Roles and authorization: three-role migration, helper/RPC guard rails, pgTAP scope tests, shared wrappers, and the Users & Roles UI.
+3. Clubs: admin club CRUD, activation/deactivation, audit/RLS tests, and responsive club list/create/edit/detail pages.
+4. Club-head assignments: assignment history and notifications, RPC/RLS tests, and the admin assignment workflow integrated with club details.
+5. Student club directory: read-only directory/detail RLS, tests, and student-facing discovery pages.
+6. Notifications: inbox/history queries, unread count, mark-read RPC/RLS, tests, and the notification center UI.
+7. Events integration: teammate-owned event tables and workflows consume the shared club/authorization/notification interfaces.
+8. Attendance integration: teammate-owned attendance and participant workflows consume the shared event and role interfaces.
+9. Integration hardening: generated/shared types, cross-module RLS contract tests, CI commands, and production deployment checks.
 
 Each item is intentionally small enough to handle in one focused prompt while keeping the database, backend and UI in the same slice.
 
+## Existing out-of-scope tables and code
+
+The original scaffold created these tables, but the reduced scope does not use them: `membership_applications`, `recruitment_forms`, `recruitment_responses`, `committee_designations`, `committee_assignments`, `event_volunteer_openings`, `volunteer_applications`, and `volunteer_assignments`. The volunteer tables still use a plain `event_id uuid` because the teammate-owned events table does not exist yet.
+
+The earlier custom-role migration and wrappers also remain for compatibility: `assign_role`, `revoke_role`, `create_role`, `update_role`, `update_role_permissions`, `delete_role`, and the old role-management types/helpers. The new RBAC migration revokes application-user execute access to those RPCs, so they are not part of the active feature. Existing placeholder routes/nav entries for memberships, recruitment, committees, and volunteers are likewise retained until you confirm removal.
+
+The first scaffold also introduced legacy role codes such as `global_admin`, `club_admin`, `president`, `recruitment_manager`, `volunteer_coordinator`, `committee_member`, and `member`. The seed no longer assigns those roles to the development users, but it does not delete the role rows or historical assignments.
+
+These tables and legacy functions can be removed in a later cleanup migration after confirming that no teammate branch or hosted data depends on them. They were intentionally not dropped in this step.
+
 ## Assumptions and decisions to confirm
 
-- The initial role codes are `global_admin`, `club_admin`, `president`, `recruitment_manager`, `volunteer_coordinator`, `committee_member`, and `member`.
-- Recruitment form questions are stored as JSONB until the form-builder requirements are known.
-- A membership is considered a club member only while its status is `active`.
-- The notification function creates the in-app notification now and logs email delivery when `EMAIL_PROVIDER` is absent; no provider adapter is selected yet.
-- The local seed inserts deterministic auth users for development only. Confirm whether you want different role names, seed identities, or an institutional email/SSO provider before the authentication slice.
+- `set_user_role(user_id, 'club_head')` establishes the user's base role marker; an admin must also assign one or more clubs before the user can manage anything.
+- Admins cannot receive Club Head assignments, and Club Head access is never global.
+- The current profile UI has full name, department, year of study, phone, and email. Roll number is part of the reduced scope but needs a field decision before the next profile migration.
+- The notification function creates in-app notifications now and logs email delivery when `EMAIL_PROVIDER` is absent; no external provider adapter is selected yet.
+- The local seed inserts deterministic auth users for development only. Confirm whether you want different seed identities or an institutional email/SSO provider before production deployment.
