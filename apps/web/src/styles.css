@@ -4,7 +4,17 @@
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #343653;
+  background: #eff0fb;
 }
+
 body {
   margin: 0;
+  min-width: 320px;
+  background: #eff0fb;
+}
+
+button,
+input {
+  font: inherit;
 }
