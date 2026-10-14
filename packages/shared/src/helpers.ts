@@ -179,3 +179,54 @@ export async function deleteRole(client: AppSupabaseClient, roleId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function createClub(
+  client: AppSupabaseClient,
+  name: string,
+  description?: string | null,
+  category?: string | null,
+  contactEmail?: string | null,
+) {
+  const { data, error } = await client.rpc('create_club', {
+    p_name: name,
+    p_description: description ?? null,
+    p_category: category ?? null,
+    p_contact_email: contactEmail ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateClub(
+  client: AppSupabaseClient,
+  clubId: string,
+  name: string,
+  description?: string | null,
+  category?: string | null,
+  contactEmail?: string | null,
+) {
+  const { data, error } = await client.rpc('update_club', {
+    p_club_id: clubId,
+    p_name: name,
+    p_description: description ?? null,
+    p_category: category ?? null,
+    p_contact_email: contactEmail ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function setClubActive(client: AppSupabaseClient, clubId: string, isActive: boolean) {
+  const { data, error } = await client.rpc('set_club_active', {
+    p_club_id: clubId,
+    p_is_active: isActive,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getClubHeads(client: AppSupabaseClient, clubId: string) {
+  const { data, error } = await client.rpc('get_club_heads', { p_club_id: clubId });
+  if (error) throw error;
+  return data ?? [];
+}

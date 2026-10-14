@@ -237,6 +237,30 @@ export type Database = {
         };
         Returns: string;
       };
+      create_club: {
+        Args: {
+          p_name: string;
+          p_description?: string | null;
+          p_category?: string | null;
+          p_contact_email?: string | null;
+        };
+        Returns: string;
+      };
+      update_club: {
+        Args: {
+          p_club_id: string;
+          p_name: string;
+          p_description?: string | null;
+          p_category?: string | null;
+          p_contact_email?: string | null;
+        };
+        Returns: string;
+      };
+      set_club_active: { Args: { p_club_id: string; p_is_active: boolean }; Returns: boolean };
+      get_club_heads: {
+        Args: { p_club_id: string };
+        Returns: Array<{ id: string; full_name: string }>;
+      };
     };
     Enums: Record<string, string>;
     CompositeTypes: Record<string, never>;

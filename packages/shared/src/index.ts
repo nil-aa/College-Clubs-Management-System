@@ -15,5 +15,9 @@ export {
   updateRole,
   updateRolePermissions,
   deleteRole,
+  createClub,
+  updateClub,
+  setClubActive,
+  getClubHeads,
   type AppSupabaseClient,
 } from './helpers';
