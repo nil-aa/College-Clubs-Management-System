@@ -16,48 +16,53 @@ import { ManageClubsPage } from './pages/ManageClubsPage';
 import { ClubDirectoryPage } from './pages/ClubDirectoryPage';
 import { ClubDetailPage } from './pages/ClubDetailPage';
 import { ManageClubPage } from './pages/ManageClubPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { NotificationsProvider } from './context/NotificationContext';
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/auth-required" element={<Navigate to="/login" replace />} />
-          <Route element={<AuthLayout />}>
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-          </Route>
-          <Route element={<PublicOnlyRoute />}>
+        <NotificationsProvider>
+          <Routes>
+            <Route path="/auth-required" element={<Navigate to="/login" replace />} />
             <Route element={<AuthLayout />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
             </Route>
-          </Route>
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="roles-permissions" element={<RoleManagementPage />} />
-              <Route path="clubs" element={<ClubDirectoryPage />} />
-              <Route path="clubs/:clubId/manage" element={<ManageClubPage />} />
-              <Route path="clubs/:clubId" element={<ClubDetailPage />} />
-              <Route path="manage-clubs" element={<ManageClubsPage />} />
-              <Route path="memberships" element={<PlaceholderPage title="Memberships" />} />
-              <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />
-              <Route path="committees" element={<PlaceholderPage title="Committees" />} />
-              <Route path="volunteers" element={<PlaceholderPage title="Event volunteers" />} />
-              <Route
-                path="events"
-                element={<PlaceholderPage title="Events" owner="Teammate 2" />}
-              />
-              <Route
-                path="bookings"
-                element={<PlaceholderPage title="Bookings & finance" owner="Teammate 3" />}
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
+            <Route element={<PublicOnlyRoute />}>
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="roles-permissions" element={<RoleManagementPage />} />
+                <Route path="clubs" element={<ClubDirectoryPage />} />
+                <Route path="clubs/:clubId/manage" element={<ManageClubPage />} />
+                <Route path="clubs/:clubId" element={<ClubDetailPage />} />
+                <Route path="manage-clubs" element={<ManageClubsPage />} />
+                <Route path="memberships" element={<PlaceholderPage title="Memberships" />} />
+                <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />
+                <Route path="committees" element={<PlaceholderPage title="Committees" />} />
+                <Route path="volunteers" element={<PlaceholderPage title="Event volunteers" />} />
+                <Route
+                  path="events"
+                  element={<PlaceholderPage title="Events" owner="Teammate 2" />}
+                />
+                <Route
+                  path="bookings"
+                  element={<PlaceholderPage title="Bookings & finance" owner="Teammate 3" />}
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Route>
+          </Routes>
+        </NotificationsProvider>
       </AuthProvider>
     </BrowserRouter>
   );
