@@ -95,4 +95,4 @@ delete from public.events
 where event_id = '52000000-0000-0000-0000-000000000001';
 drop function public.test_register_for_event_race(uuid);
 select * from finish();
-rollback;
+commit;

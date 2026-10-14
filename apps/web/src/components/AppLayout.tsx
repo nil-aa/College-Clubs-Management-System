@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 import { NotificationBell } from './NotificationBell';
+import { useManagedClubs } from '../features/events/useManagedClubs';
 
 const defaultClubId =
   import.meta.env.VITE_DEFAULT_CLUB_ID || '20000000-0000-0000-0000-000000000001';
@@ -26,7 +27,6 @@ const ownNav: PermissionNav[] = [
 ];
 
 const teammateNav = [
-  { label: 'Events (Teammate 2)', to: '/events' },
   { label: 'Bookings & Finance (Teammate 3)', to: '/bookings' },
 ];
 
@@ -42,6 +42,7 @@ function PermissionNavItem({ item }: { item: PermissionNav }) {
 function NavItem({ label, to }: { label: string; to: string }) {
   return (
     <NavLink
+      end={to === '/'}
       to={to}
       className={({ isActive }) =>
         `rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-aqua/40 ${isActive ? 'bg-mint text-slateDark' : 'text-slateDark/75 hover:bg-pink'}`
@@ -57,6 +58,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  const { clubs: managedEventClubs } = useManagedClubs();
   const displayName =
     profile?.full_name || user?.user_metadata.full_name || user?.email?.split('@')[0] || 'Member';
 
@@ -110,7 +112,10 @@ export function AppLayout() {
       </header>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8">
         <aside className="flex shrink-0 flex-col gap-1 lg:w-64">
-          <NavItem label="Dashboard" to="/" />
+          <NavItem label="Events" to="/" />
+          <NavItem label="My Registrations" to="/my-registrations" />
+          {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
+          <NavItem label="Dashboard" to="/dashboard" />
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
           </p>

@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(25);
 
 reset role;
 insert into public.events (
@@ -54,6 +54,14 @@ values
     'Registration Postponed Event', 'Postponed fixture.', 'Main Hall', 'Technology',
     now() + interval '7 days', now() + interval '7 days 2 hours',
     now() + interval '6 days', 10, 'POSTPONED', now()
+  ),
+  (
+    '51000000-0000-0000-0000-000000000007',
+    '20000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000001',
+    'Other Club Registration Event', 'Club head participation fixture.', 'West Hall', 'Arts',
+    now() + interval '8 days', now() + interval '8 days 2 hours',
+    now() + interval '7 days', 10, 'PUBLISHED', now()
   );
 
 insert into public.event_registrations (event_id, student_id)
@@ -188,17 +196,23 @@ select is(
 );
 
 select tests.authenticate_as('president@example.test');
-select throws_ok(
-  $$select * from public.register_for_event('51000000-0000-0000-0000-000000000001')$$,
-  '42501',
-  'Only active students can use event registration.',
-  'club heads cannot register through student workflows without a student role'
+select lives_ok(
+  $$select * from public.register_for_event('51000000-0000-0000-0000-000000000007')$$,
+  'a club head can register for an event outside their assigned club'
 );
+select is(
+  (select count(*)::integer from public.list_my_event_registrations()
+   where event_id = '51000000-0000-0000-0000-000000000007'),
+  1,
+  'club heads can see their own registrations in My Registrations'
+);
+
+select tests.authenticate_as('global-admin@example.test');
 select throws_ok(
-  $$select * from public.list_my_event_registrations()$$,
+  $$select * from public.register_for_event('51000000-0000-0000-0000-000000000007')$$,
   '42501',
-  'Only active students can use event registration.',
-  'non-students cannot read student registration history'
+  'Only active students or club heads can use event registration.',
+  'admins without a student or club-head role cannot register'
 );
 
 select tests.authenticate_as('member@example.test');
@@ -216,7 +230,7 @@ select tests.authenticate_as('member@example.test');
 select throws_ok(
   $$select * from public.list_my_event_registrations()$$,
   '42501',
-  'Only active students can use event registration.',
+  'Only active students or club heads can use event registration.',
   'inactive profiles cannot use registration workflows'
 );
 reset role;

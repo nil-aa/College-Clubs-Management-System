@@ -19,6 +19,12 @@ import { ManageClubPage } from './pages/ManageClubPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { NotificationsProvider } from './context/NotificationContext';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { EventsPage } from './pages/EventsPage';
+import { EventDetailPage } from './pages/EventDetailPage';
+import { MyRegistrationsPage } from './pages/MyRegistrationsPage';
+import { ManageEventsPage } from './pages/ManageEventsPage';
+import { EventFormPage } from './pages/EventFormPage';
+import { ManageEventDetailPage } from './pages/ManageEventDetailPage';
 
 export function App() {
   return (
@@ -39,7 +45,15 @@ export function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route index element={<DashboardPage />} />
+                <Route index element={<EventsPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="events" element={<EventsPage />} />
+                <Route path="events/:eventId" element={<EventDetailPage />} />
+                <Route path="my-registrations" element={<MyRegistrationsPage />} />
+                <Route path="manage-events" element={<ManageEventsPage />} />
+                <Route path="manage-events/new" element={<EventFormPage />} />
+                <Route path="manage-events/:eventId/edit" element={<EventFormPage />} />
+                <Route path="manage-events/:eventId" element={<ManageEventDetailPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="audit-logs" element={<AuditLogPage />} />
@@ -52,10 +66,6 @@ export function App() {
                 <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />
                 <Route path="committees" element={<PlaceholderPage title="Committees" />} />
                 <Route path="volunteers" element={<PlaceholderPage title="Event volunteers" />} />
-                <Route
-                  path="events"
-                  element={<PlaceholderPage title="Events" owner="Teammate 2" />}
-                />
                 <Route
                   path="bookings"
                   element={<PlaceholderPage title="Bookings & finance" owner="Teammate 3" />}
