@@ -116,7 +116,7 @@ The `events`, `event_registrations`, `attendance`, `participant_lists`, `od_shee
 | `clubs`                                                   | M1                               | Authenticated users for active clubs; admins and assigned Club Heads may read inactive clubs             |
 | `club_memberships`                                        | M1                               | The member and authorized club workflows                                                                 |
 | `notifications`                                           | M1                               | Only the notification owner; writes use `send_notification`, and owners may update only `is_read`        |
-| `audit_logs`                                              | M1                               | The actor or users with audit-read permission; inserts use `log_audit` only                              |
+| `audit_logs`                                              | M1                               | Admins through `list_audit_logs`/`get_admin_dashboard_stats`; inserts use `log_audit` only               |
 | `events`, `event_registrations`                           | M2                               | M2 defines access and shares approved reads with M1/M3                                                   |
 | `attendance`, `participant_lists`, `od_sheets`, `reports` | M3                               | M3 defines access and shares approved reads with M1/M2                                                   |
 
@@ -175,6 +175,27 @@ Signatures:
 - `get_active_student_ids() returns setof uuid`: returns active users with the global `student` role for event-publication fan-out.
 - `mark_notification_read(p_id uuid) returns boolean`: marks only the current user's notification and returns whether an unread row changed.
 - `mark_all_notifications_read() returns integer`: marks only the current user's unread notifications and returns the number changed.
+- `list_audit_logs(p_action text, p_entity_type text, p_actor uuid, p_from timestamptz, p_to timestamptz, p_limit int, p_offset int) returns table(actor_id uuid, actor_name text, action text, entity_type text, entity_id uuid, details jsonb, created_at timestamptz, total_count bigint)`: admin-only paginated audit access; the effective limit is between 1 and 100 and rows are newest first.
+- `get_admin_dashboard_stats() returns jsonb`: admin-only aggregate source for active/inactive club counts, users by role, clubs without an active Club Head, and the five newest audit entries.
+
+### Audit actions
+
+Audit actions use the dot-separated `entity.verb` convention. The actions currently emitted by Member 1 are:
+
+| Action                                                                              | Entity type             | Current use                      |
+| ----------------------------------------------------------------------------------- | ----------------------- | -------------------------------- |
+| `profile.updated`                                                                   | `profiles`              | Profile fields changed           |
+| `role.assigned` / `role.revoked` / `role.created` / `role.updated` / `role.deleted` | `user_roles` or `roles` | Legacy RBAC role management      |
+| `role.permissions_updated`                                                          | `roles`                 | Legacy permission mapping change |
+| `club_head.assigned` / `club_head.revoked`                                          | `user_roles`            | Club Head assignment history     |
+| `user_role.changed`                                                                 | `user_roles`            | Three-role promotion/demotion    |
+| `club.created` / `club.updated` / `club.activated` / `club.deactivated`             | `clubs`                 | Club administration              |
+
+All existing names are retained for compatibility. `role.permissions_updated` contains an underscore in its verb and `user_role.changed` uses a more specific entity name than `role.assigned`/`role.revoked`; these are naming inconsistencies to consider in a future coordinated cleanup, but they were not renamed in this migration.
+
+Unknown action strings must be displayed as their raw value. Teammates should use the same `entity.verb` pattern when adding audit calls.
+
+Audit reads are intentionally RPC-only. `audit_logs` remains append-only, direct browser `select`, `insert`, `update`, and `delete` privileges are revoked, and `list_audit_logs`/`get_admin_dashboard_stats` perform the admin permission check inside `SECURITY DEFINER` functions.
 
 After a teammate's RPC completes its business write successfully, call the helpers in the same transaction before returning:
 
@@ -215,6 +236,10 @@ The existing RBAC assignment RPCs also retain their internal notification types 
 ## Club details event placeholder
 
 The Member 1 web contract includes `<EventsSection clubId={clubId} />` on the club detail page. It is currently a visual placeholder and performs no events-table query. Member 2 may replace its implementation once the events schema exists, keeping `clubId: string` as the input contract.
+
+## Dashboard events placeholder
+
+The web dashboard includes `<EventsDashboardSlot audience="student" />` for students and `<EventsDashboardSlot audience="club_head" clubIds={clubIds} />` for Club Heads. This component is visual-only and performs no events, registration, attendance or report query. Member 2/3 may replace or extend it with `upcomingEvents`, `registrationStats`, and `attendanceStats` widgets while keeping `audience` and the optional assigned `clubIds` contract.
 
 ## Notification delivery and Realtime
 

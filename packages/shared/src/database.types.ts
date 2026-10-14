@@ -276,6 +276,28 @@ export type Database = {
         Args: { p_club_id: string };
         Returns: Array<{ id: string; full_name: string }>;
       };
+      list_audit_logs: {
+        Args: {
+          p_action?: string | null;
+          p_entity_type?: string | null;
+          p_actor?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          actor_id: string | null;
+          actor_name: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          details: Json;
+          created_at: string;
+          total_count: number;
+        }>;
+      };
+      get_admin_dashboard_stats: { Args: Record<string, never>; Returns: Json };
     };
     Enums: Record<string, string>;
     CompositeTypes: Record<string, never>;

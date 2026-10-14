@@ -23,5 +23,10 @@ export {
   updateClub,
   setClubActive,
   getClubHeads,
+  listAuditLogs,
+  getAdminDashboardStats,
+  type AuditLogEntry,
+  type AdminDashboardAuditEntry,
+  type AdminDashboardStats,
   type AppSupabaseClient,
 } from './helpers';
