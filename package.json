@@ -1,0 +1,30 @@
+{
+  "name": "club-management-system",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@10",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @club-management/web",
+    "build": "npm run build --workspace @club-management/web",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspace @club-management/shared",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript --local > packages/shared/src/database.types.ts"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.44.0",
+    "@types/node": "^22.15.33",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "eslint": "^8.57.1",
+    "prettier": "^3.6.2"
+  }
+}
