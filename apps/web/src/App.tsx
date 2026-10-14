@@ -12,6 +12,10 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SignupPage } from './pages/SignupPage';
 import { RoleManagementPage } from './pages/RoleManagementPage';
+import { ManageClubsPage } from './pages/ManageClubsPage';
+import { ClubDirectoryPage } from './pages/ClubDirectoryPage';
+import { ClubDetailPage } from './pages/ClubDetailPage';
+import { ManageClubPage } from './pages/ManageClubPage';
 
 export function App() {
   return (
@@ -34,7 +38,10 @@ export function App() {
               <Route index element={<DashboardPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="roles-permissions" element={<RoleManagementPage />} />
-              <Route path="clubs" element={<PlaceholderPage title="Clubs" />} />
+              <Route path="clubs" element={<ClubDirectoryPage />} />
+              <Route path="clubs/:clubId/manage" element={<ManageClubPage />} />
+              <Route path="clubs/:clubId" element={<ClubDetailPage />} />
+              <Route path="manage-clubs" element={<ManageClubsPage />} />
               <Route path="memberships" element={<PlaceholderPage title="Memberships" />} />
               <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />
               <Route path="committees" element={<PlaceholderPage title="Committees" />} />
