@@ -172,6 +172,71 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          event_id: string;
+          club_id: string;
+          created_by: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<{
+          event_id: string;
+          club_id: string;
+          created_by: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string | null;
+        }>;
+        Update: Partial<{
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      event_registrations: {
+        Row: {
+          registration_id: string;
+          event_id: string;
+          student_id: string;
+          status: string;
+          registered_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<{
+          registration_id: string;
+          event_id: string;
+          student_id: string;
+          status: string;
+        }>;
+        Update: Partial<{ status: string }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -181,6 +246,183 @@ export type Database = {
         Returns: boolean;
       };
       can_manage_club: { Args: { p_club_id: string }; Returns: boolean };
+      create_event: {
+        Args: {
+          p_club_id: string;
+          p_title: string;
+          p_description: string | null;
+          p_venue: string;
+          p_category: string | null;
+          p_start_time: string;
+          p_end_time: string;
+          p_registration_deadline: string;
+          p_capacity: number;
+        };
+        Returns: string;
+      };
+      list_managed_events: {
+        Args: { p_club_id?: string | null; p_limit?: number; p_offset?: number };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          created_by: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+          registration_count: number;
+        }>;
+      };
+      get_managed_event: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          created_by: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+          registration_count: number;
+        }>;
+      };
+      list_student_events: {
+        Args: {
+          p_search?: string | null;
+          p_club_id?: string | null;
+          p_category?: string | null;
+          p_start_from?: string | null;
+          p_start_to?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
+      get_student_event: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          status: string;
+          published_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
+      register_for_event: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          status: string;
+          registered_at: string;
+          registration_count: number;
+          capacity: number;
+          registration_availability: string;
+        }>;
+      };
+      cancel_event_registration: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          status: string;
+          registered_at: string;
+          registration_count: number;
+          capacity: number;
+          registration_availability: string;
+        }>;
+      };
+      list_my_event_registrations: {
+        Args: { p_upcoming_only?: boolean; p_limit?: number; p_offset?: number };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          club_is_active: boolean;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          event_status: string;
+          registration_status: string;
+          registered_at: string;
+          updated_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
+      update_event: {
+        Args: {
+          p_event_id: string;
+          p_title: string;
+          p_description: string | null;
+          p_venue: string;
+          p_category: string | null;
+          p_start_time: string;
+          p_end_time: string;
+          p_registration_deadline: string;
+          p_capacity: number;
+        };
+        Returns: string;
+      };
+      publish_event: { Args: { p_event_id: string }; Returns: string };
+      postpone_event: {
+        Args: {
+          p_event_id: string;
+          p_start_time?: string | null;
+          p_end_time?: string | null;
+          p_registration_deadline?: string | null;
+        };
+        Returns: string;
+      };
+      cancel_event: { Args: { p_event_id: string }; Returns: string };
       assign_club_head: {
         Args: { p_user_id: string; p_club_id: string };
         Returns: string;
