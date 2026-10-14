@@ -350,6 +350,54 @@ export type Database = {
           registration_availability: string;
         }>;
       };
+      register_for_event: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          status: string;
+          registered_at: string;
+          registration_count: number;
+          capacity: number;
+          registration_availability: string;
+        }>;
+      };
+      cancel_event_registration: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          status: string;
+          registered_at: string;
+          registration_count: number;
+          capacity: number;
+          registration_availability: string;
+        }>;
+      };
+      list_my_event_registrations: {
+        Args: { p_upcoming_only?: boolean; p_limit?: number; p_offset?: number };
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          club_is_active: boolean;
+          title: string;
+          description: string | null;
+          venue: string;
+          category: string | null;
+          start_time: string;
+          end_time: string;
+          registration_deadline: string;
+          capacity: number;
+          event_status: string;
+          registration_status: string;
+          registered_at: string;
+          updated_at: string;
+          registration_count: number;
+          registration_availability: string;
+        }>;
+      };
       update_event: {
         Args: {
           p_event_id: string;

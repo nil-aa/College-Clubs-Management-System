@@ -5,6 +5,7 @@ export type ManagedEvent =
   Database['public']['Functions']['list_managed_events']['Returns'][number];
 
 export type RegistrationAvailability = 'AVAILABLE' | 'FULL' | 'CLOSED';
+export type EventRegistrationStatus = 'REGISTERED' | 'CANCELLED';
 
 export type StudentEvent = Omit<
   Database['public']['Functions']['list_student_events']['Returns'][number],
@@ -17,6 +18,28 @@ export type StudentEventOptions = {
   category?: string | null;
   startFrom?: string | null;
   startTo?: string | null;
+  limit?: number;
+  offset?: number;
+};
+
+export type EventRegistrationResult = Omit<
+  Database['public']['Functions']['register_for_event']['Returns'][number],
+  'status' | 'registration_availability'
+> & {
+  status: EventRegistrationStatus;
+  registration_availability: RegistrationAvailability;
+};
+
+export type MyEventRegistration = Omit<
+  Database['public']['Functions']['list_my_event_registrations']['Returns'][number],
+  'registration_status' | 'registration_availability'
+> & {
+  registration_status: EventRegistrationStatus;
+  registration_availability: RegistrationAvailability;
+};
+
+export type MyEventRegistrationOptions = {
+  upcomingOnly?: boolean;
   limit?: number;
   offset?: number;
 };
@@ -86,6 +109,46 @@ export async function getStudentEvent(
   const { data, error } = await client.rpc('get_student_event', { p_event_id: eventId });
   if (error) throw error;
   return (data?.[0] as StudentEvent | undefined) ?? null;
+}
+
+export async function registerForEvent(
+  client: AppSupabaseClient,
+  eventId: string,
+): Promise<EventRegistrationResult | null> {
+  const { data, error } = await client.rpc('register_for_event', { p_event_id: eventId });
+  if (error) throw error;
+  return (data?.[0] as EventRegistrationResult | undefined) ?? null;
+}
+
+export async function cancelEventRegistration(
+  client: AppSupabaseClient,
+  eventId: string,
+): Promise<EventRegistrationResult | null> {
+  const { data, error } = await client.rpc('cancel_event_registration', {
+    p_event_id: eventId,
+  });
+  if (error) throw error;
+  return (data?.[0] as EventRegistrationResult | undefined) ?? null;
+}
+
+export async function listMyEventRegistrations(
+  client: AppSupabaseClient,
+  options: MyEventRegistrationOptions = {},
+): Promise<MyEventRegistration[]> {
+  const { data, error } = await client.rpc('list_my_event_registrations', {
+    p_upcoming_only: options.upcomingOnly ?? false,
+    p_limit: options.limit ?? 50,
+    p_offset: options.offset ?? 0,
+  });
+  if (error) throw error;
+  return (data ?? []) as MyEventRegistration[];
+}
+
+export async function listMyUpcomingEventRegistrations(
+  client: AppSupabaseClient,
+  options: Omit<MyEventRegistrationOptions, 'upcomingOnly'> = {},
+): Promise<MyEventRegistration[]> {
+  return listMyEventRegistrations(client, { ...options, upcomingOnly: true });
 }
 
 export async function getManagedEvent(client: AppSupabaseClient, eventId: string) {

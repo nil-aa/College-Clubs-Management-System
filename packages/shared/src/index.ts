@@ -5,6 +5,10 @@ export {
   listStudentEvents,
   getStudentEvent,
   getManagedEvent,
+  registerForEvent,
+  cancelEventRegistration,
+  listMyEventRegistrations,
+  listMyUpcomingEventRegistrations,
   updateEvent,
   publishEvent,
   postponeEvent,
@@ -14,6 +18,10 @@ export {
   type StudentEvent,
   type StudentEventOptions,
   type RegistrationAvailability,
+  type EventRegistrationStatus,
+  type EventRegistrationResult,
+  type MyEventRegistration,
+  type MyEventRegistrationOptions,
 } from './events';
 export {
   hasPermission,
