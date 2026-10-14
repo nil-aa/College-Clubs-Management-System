@@ -56,7 +56,7 @@ npm run build
 npm run dev
 ```
 
-Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. The login UI is intentionally deferred to the authentication vertical slice. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
+Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. Authentication and profile pages are available at `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/profile`. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
 
 ```powershell
 supabase functions serve notifications --env-file supabase/functions/.env
