@@ -1,5 +1,16 @@
 export type { Database, Json, NotificationType } from './database.types';
 export {
+  createEvent,
+  listManagedEvents,
+  getManagedEvent,
+  updateEvent,
+  publishEvent,
+  postponeEvent,
+  cancelEvent,
+  type EventInput,
+  type ManagedEvent,
+} from './events';
+export {
   hasPermission,
   hasRole,
   isClubMember,
