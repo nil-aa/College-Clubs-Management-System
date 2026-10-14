@@ -6,7 +6,15 @@ import { usePermission } from '../hooks/usePermission';
 const defaultClubId =
   import.meta.env.VITE_DEFAULT_CLUB_ID || '20000000-0000-0000-0000-000000000001';
 
-const ownNav = [
+type PermissionNav = { label: string; to: string; permission: string; clubId?: string | null };
+
+const ownNav: PermissionNav[] = [
+  {
+    label: 'Users & Roles',
+    to: '/roles-permissions',
+    permission: 'users.manage',
+    clubId: null,
+  },
   { label: 'Clubs', to: '/clubs', permission: 'clubs.read' },
   { label: 'Memberships', to: '/memberships', permission: 'memberships.read' },
   { label: 'Recruitment', to: '/recruitment', permission: 'recruitment.read' },
@@ -19,8 +27,11 @@ const teammateNav = [
   { label: 'Bookings & Finance (Teammate 3)', to: '/bookings' },
 ];
 
-function PermissionNavItem({ item }: { item: (typeof ownNav)[number] }) {
-  const { allowed, loading } = usePermission(item.permission, defaultClubId);
+function PermissionNavItem({ item }: { item: PermissionNav }) {
+  const { allowed, loading } = usePermission(
+    item.permission,
+    item.clubId === undefined ? defaultClubId : item.clubId,
+  );
   if (loading || !allowed) return null;
   return <NavItem label={item.label} to={item.to} />;
 }
@@ -64,7 +75,7 @@ export function AppLayout() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <p className="text-lg font-bold">Club Management</p>
-            <p className="text-xs text-slateDark/70">Identity, clubs and membership</p>
+            <p className="text-xs text-slateDark/70">Identity, clubs and notifications</p>
           </div>
           <div className="flex items-center gap-3">
             <NavLink
