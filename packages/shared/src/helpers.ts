@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, Json } from './database.types';
+import type { Database, Json, NotificationType } from './database.types';
 
 export type AppSupabaseClient = SupabaseClient<Database>;
 
@@ -28,6 +28,39 @@ export async function isClubMember(client: AppSupabaseClient, clubId: string) {
   return data;
 }
 
+export async function canManageClub(client: AppSupabaseClient, clubId: string) {
+  const { data, error } = await client.rpc('can_manage_club', { p_club_id: clubId });
+  if (error) throw error;
+  return data;
+}
+
+export async function assignClubHead(client: AppSupabaseClient, userId: string, clubId: string) {
+  const { data, error } = await client.rpc('assign_club_head', {
+    p_user_id: userId,
+    p_club_id: clubId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function revokeClubHead(client: AppSupabaseClient, userId: string, clubId: string) {
+  const { data, error } = await client.rpc('revoke_club_head', {
+    p_user_id: userId,
+    p_club_id: clubId,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function setUserRole(client: AppSupabaseClient, userId: string, role: string) {
+  const { data, error } = await client.rpc('set_user_role', {
+    p_user_id: userId,
+    p_role: role,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function logAudit(
   client: AppSupabaseClient,
   action: string,
@@ -48,7 +81,7 @@ export async function logAudit(
 export async function sendNotification(
   client: AppSupabaseClient,
   userId: string,
-  type: string,
+  type: NotificationType,
   title: string,
   message: string,
   channels: string[],
@@ -62,6 +95,87 @@ export async function sendNotification(
     p_channels: channels,
     p_metadata: metadata,
   });
+  if (error) throw error;
+  return data;
+}
+
+export async function assignRole(
+  client: AppSupabaseClient,
+  userId: string,
+  roleId: string,
+  clubId?: string | null,
+) {
+  const { data, error } = await client.rpc('assign_role', {
+    p_user_id: userId,
+    p_role_id: roleId,
+    p_club_id: clubId ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function revokeRole(
+  client: AppSupabaseClient,
+  userId: string,
+  roleId: string,
+  clubId?: string | null,
+) {
+  const { data, error } = await client.rpc('revoke_role', {
+    p_user_id: userId,
+    p_role_id: roleId,
+    p_club_id: clubId ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function createRole(
+  client: AppSupabaseClient,
+  code: string,
+  name: string,
+  description?: string | null,
+) {
+  const { data, error } = await client.rpc('create_role', {
+    p_code: code,
+    p_name: name,
+    p_description: description ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRole(
+  client: AppSupabaseClient,
+  roleId: string,
+  name: string,
+  code?: string | null,
+  description?: string | null,
+) {
+  const { data, error } = await client.rpc('update_role', {
+    p_role_id: roleId,
+    p_name: name,
+    p_code: code ?? null,
+    p_description: description ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRolePermissions(
+  client: AppSupabaseClient,
+  roleId: string,
+  permissionIds: string[],
+) {
+  const { data, error } = await client.rpc('update_role_permissions', {
+    p_role_id: roleId,
+    p_permission_ids: permissionIds,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteRole(client: AppSupabaseClient, roleId: string) {
+  const { data, error } = await client.rpc('delete_role', { p_role_id: roleId });
   if (error) throw error;
   return data;
 }

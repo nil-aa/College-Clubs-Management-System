@@ -1,9 +1,19 @@
-export type { Database, Json } from './database.types';
+export type { Database, Json, NotificationType } from './database.types';
 export {
   hasPermission,
   hasRole,
   isClubMember,
+  canManageClub,
+  assignClubHead,
+  revokeClubHead,
+  setUserRole,
   logAudit,
   sendNotification,
+  assignRole,
+  revokeRole,
+  createRole,
+  updateRole,
+  updateRolePermissions,
+  deleteRole,
   type AppSupabaseClient,
 } from './helpers';
