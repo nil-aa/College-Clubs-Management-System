@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
+import { NotificationBell } from './NotificationBell';
 
 const defaultClubId =
   import.meta.env.VITE_DEFAULT_CLUB_ID || '20000000-0000-0000-0000-000000000001';
@@ -79,6 +80,7 @@ export function AppLayout() {
             <p className="text-xs text-slateDark/70">Identity, clubs and notifications</p>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <NavLink
               className="rounded-xl px-3 py-2 text-sm font-semibold text-slateDark/75 hover:bg-pink focus:outline-none focus:ring-4 focus:ring-aqua/40"
               to="/profile"

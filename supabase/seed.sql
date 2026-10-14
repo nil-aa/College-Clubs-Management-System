@@ -322,3 +322,26 @@ where r.code = 'student'
     '10000000-0000-0000-0000-000000000008'::uuid
   )
 on conflict do nothing;
+
+-- Safe-to-rerun in-app notification examples. These intentionally have no
+-- related_event_id because the events table is owned by Member 2 and does not
+-- exist in this schema yet.
+insert into public.notifications (id, user_id, type, title, message, is_read)
+values
+  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003',
+   'event_published', 'New event published', 'A new club event is available.', false),
+  ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003',
+   'registration_confirmed', 'Registration confirmed', 'Your registration was confirmed.', true),
+  ('30000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000004',
+   'event_postponed', 'Event postponed', 'An event schedule has changed.', false),
+  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000005',
+   'registration_cancelled', 'Registration cancelled', 'Your registration was cancelled.', true),
+  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000006',
+   'event_cancelled', 'Event cancelled', 'An event has been cancelled.', false)
+on conflict (id) do update
+set user_id = excluded.user_id,
+    type = excluded.type,
+    title = excluded.title,
+    message = excluded.message,
+    is_read = excluded.is_read,
+    related_event_id = null;

@@ -148,7 +148,10 @@ export type Database = {
           message: string;
           related_event_id: string | null;
           is_read: boolean;
+          channels: string[];
+          metadata: Json;
           status: string;
+          read_at: string | null;
           created_at: string;
         };
         Insert: Record<string, never>;
@@ -232,11 +235,23 @@ export type Database = {
           p_type: string;
           p_title: string;
           p_message: string;
-          p_channels: string[];
-          p_metadata: Json;
+          p_related_event_id?: string | null;
         };
         Returns: string;
       };
+      send_notification_bulk: {
+        Args: {
+          p_user_ids: string[];
+          p_type: string;
+          p_title: string;
+          p_message: string;
+          p_related_event_id?: string | null;
+        };
+        Returns: number;
+      };
+      get_active_student_ids: { Args: Record<string, never>; Returns: string[] };
+      mark_notification_read: { Args: { p_id: string }; Returns: boolean };
+      mark_all_notifications_read: { Args: Record<string, never>; Returns: number };
       create_club: {
         Args: {
           p_name: string;

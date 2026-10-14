@@ -84,17 +84,52 @@ export async function sendNotification(
   type: NotificationType,
   title: string,
   message: string,
-  channels: string[],
-  metadata: Json = {},
+  relatedEventId?: string | null,
 ) {
   const { data, error } = await client.rpc('send_notification', {
     p_user_id: userId,
     p_type: type,
     p_title: title,
     p_message: message,
-    p_channels: channels,
-    p_metadata: metadata,
+    p_related_event_id: relatedEventId ?? null,
   });
+  if (error) throw error;
+  return data;
+}
+
+export async function sendNotificationBulk(
+  client: AppSupabaseClient,
+  userIds: string[],
+  type: NotificationType,
+  title: string,
+  message: string,
+  relatedEventId?: string | null,
+) {
+  const { data, error } = await client.rpc('send_notification_bulk', {
+    p_user_ids: userIds,
+    p_type: type,
+    p_title: title,
+    p_message: message,
+    p_related_event_id: relatedEventId ?? null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getActiveStudentIds(client: AppSupabaseClient) {
+  const { data, error } = await client.rpc('get_active_student_ids');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function markNotificationRead(client: AppSupabaseClient, notificationId: string) {
+  const { data, error } = await client.rpc('mark_notification_read', { p_id: notificationId });
+  if (error) throw error;
+  return data;
+}
+
+export async function markAllNotificationsRead(client: AppSupabaseClient) {
+  const { data, error } = await client.rpc('mark_all_notifications_read');
   if (error) throw error;
   return data;
 }

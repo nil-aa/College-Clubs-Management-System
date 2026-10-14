@@ -1,0 +1,17 @@
+-- Enable authenticated Realtime delivery for notifications when the standard
+-- Supabase publication is available. RLS still controls which rows are sent.
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1
+       from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'notifications'
+     ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end;
+$$;
