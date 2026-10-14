@@ -4,14 +4,34 @@ export type Database = {
   public: {
     Tables: {
       profiles: {
-        Row: { id: string; full_name: string; avatar_url: string | null; status: string };
+        Row: {
+          id: string;
+          full_name: string;
+          avatar_url: string | null;
+          phone: string | null;
+          department: string | null;
+          year_of_study: number | null;
+          bio: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: Partial<{
           id: string;
           full_name: string;
           avatar_url: string | null;
+          phone: string | null;
+          department: string | null;
+          year_of_study: number | null;
+          bio: string | null;
           status: string;
         }>;
-        Update: Partial<{ full_name: string; avatar_url: string | null; status: string }>;
+        Update: Partial<{
+          full_name: string;
+          phone: string | null;
+          department: string | null;
+          year_of_study: number | null;
+        }>;
         Relationships: [];
       };
       clubs: {

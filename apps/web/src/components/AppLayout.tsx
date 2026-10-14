@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 
@@ -29,7 +30,7 @@ function NavItem({ label, to }: { label: string; to: string }) {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `rounded-md px-3 py-2 text-sm ${isActive ? 'bg-indigo-100 text-indigo-800' : 'text-slate-600 hover:bg-slate-100'}`
+        `rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-aqua/40 ${isActive ? 'bg-mint text-slateDark' : 'text-slateDark/75 hover:bg-pink'}`
       }
     >
       {label}
@@ -38,28 +39,70 @@ function NavItem({ label, to }: { label: string; to: string }) {
 }
 
 export function AppLayout() {
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+  const displayName =
+    profile?.full_name || user?.user_metadata.full_name || user?.email?.split('@')[0] || 'Member';
+
+  async function handleLogout() {
+    setLogoutError('');
+    setLoggingOut(true);
+    const { error } = await signOut();
+    setLoggingOut(false);
+    if (error) {
+      setLogoutError(error.message || 'Could not log out.');
+      return;
+    }
+    navigate('/login', { replace: true });
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-lavender text-slateDark">
+      <header className="border-b border-mutedSlate/30 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
-            <p className="text-lg font-semibold">Club Management</p>
-            <p className="text-xs text-slate-500">Identity, clubs and membership foundation</p>
+            <p className="text-lg font-bold">Club Management</p>
+            <p className="text-xs text-slateDark/70">Identity, clubs and membership</p>
           </div>
-          <span className="text-sm text-slate-600">{user?.email ?? 'Signed out'}</span>
+          <div className="flex items-center gap-3">
+            <NavLink
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-slateDark/75 hover:bg-pink focus:outline-none focus:ring-4 focus:ring-aqua/40"
+              to="/profile"
+            >
+              <span className="hidden sm:inline">Hello, </span>
+              {displayName}
+            </NavLink>
+            <button
+              className="rounded-xl border border-mutedSlate/50 px-3 py-2 text-sm font-bold text-slateDark transition hover:bg-pink focus:outline-none focus:ring-4 focus:ring-aqua/40 disabled:opacity-60"
+              disabled={loggingOut}
+              onClick={handleLogout}
+              type="button"
+            >
+              {loggingOut ? 'Logging out…' : 'Log out'}
+            </button>
+          </div>
         </div>
+        {logoutError && (
+          <p
+            className="mx-auto max-w-7xl px-4 pb-3 text-sm font-medium text-rose-800 sm:px-6"
+            role="alert"
+          >
+            {logoutError}
+          </p>
+        )}
       </header>
-      <div className="mx-auto flex max-w-7xl gap-8 px-6 py-6">
-        <aside className="flex w-64 shrink-0 flex-col gap-1">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8">
+        <aside className="flex shrink-0 flex-col gap-1 lg:w-64">
           <NavItem label="Dashboard" to="/" />
-          <p className="px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
           </p>
           {ownNav.map((item) => (
             <PermissionNavItem item={item} key={item.to} />
           ))}
-          <p className="px-3 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Team modules
           </p>
           {teammateNav.map((item) => (

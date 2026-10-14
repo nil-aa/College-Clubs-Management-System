@@ -1,19 +1,37 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { AuthLayout } from './components/AuthLayout';
 import { AppLayout } from './components/AppLayout';
+import { PublicOnlyRoute } from './components/PublicOnlyRoute';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
-import { AuthRequiredPage, PlaceholderPage } from './pages/PlaceholderPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { LoginPage } from './pages/LoginPage';
+import { PlaceholderPage } from './pages/PlaceholderPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { SignupPage } from './pages/SignupPage';
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/auth-required" element={<AuthRequiredPage />} />
+          <Route path="/auth-required" element={<Navigate to="/login" replace />} />
+          <Route element={<AuthLayout />}>
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+          </Route>
+          <Route element={<PublicOnlyRoute />}>
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            </Route>
+          </Route>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="clubs" element={<PlaceholderPage title="Clubs" />} />
               <Route path="memberships" element={<PlaceholderPage title="Memberships" />} />
               <Route path="recruitment" element={<PlaceholderPage title="Recruitment" />} />
