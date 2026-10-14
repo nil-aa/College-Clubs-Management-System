@@ -57,7 +57,7 @@ npm run build
 npm run dev
 ```
 
-Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. The seeded admin is `global-admin@example.test`; Club Heads are `president@example.test` and `club-head-two@example.test`; the remaining seeded accounts are students. Authentication and profile pages are available at `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/profile`. The admin Users & Roles page is `/roles-permissions` and requires `users.manage`. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
+Open http://localhost:5173. The seed accounts are development-only and all use the password `Test1234!`; never reuse or deploy these credentials. The seeded admin is `global-admin@example.test`; Club Heads are `president@example.test` and `club-head-two@example.test`; the remaining seeded accounts are students. Authentication and profile pages are available at `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/profile`. The admin Users & Roles page is `/roles-permissions`, and club administration is `/manage-clubs`; both require `users.manage`. The directory is `/clubs`, and individual club details are `/clubs/:clubId`. To invoke the notification function locally, copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill in the local service-role key from `supabase status`, and run:
 
 ```powershell
 supabase functions serve notifications --env-file supabase/functions/.env
@@ -105,13 +105,16 @@ select public.has_role('club_head', '00000000-0000-0000-0000-000000000000'::uuid
 select public.has_permission('clubs.manage', '00000000-0000-0000-0000-000000000000'::uuid);
 select public.is_club_member('00000000-0000-0000-0000-000000000000'::uuid);
 select public.can_manage_club('00000000-0000-0000-0000-000000000000'::uuid);
+select public.get_club_heads('00000000-0000-0000-0000-000000000000'::uuid);
 ```
 
 - `has_role(role, club_id)` checks an active global role, or the exact club-scoped Club Head assignment.
 - `has_permission(permission, club_id)` checks an active permission at the requested scope. Admins pass globally.
 - `is_club_member(club_id)` checks an active membership for the current user.
 - `can_manage_club(club_id)` is true for an admin or a Club Head assigned to that exact club.
+- `get_club_heads(club_id)` returns only active head `id` and `full_name` values for a club.
 - `assign_club_head(user_id, club_id)`, `revoke_club_head(user_id, club_id)`, and `set_user_role(user_id, role)` are the admin-only write boundaries for RBAC.
+- `create_club(name, description, category, contact_email)`, `update_club(club_id, name, description, category, contact_email)`, and `set_club_active(club_id, is_active)` are the admin-only club write boundaries. Club names are case-insensitively unique and clubs are never deleted.
 
 ## Security decisions in this scaffold
 
