@@ -120,6 +120,9 @@ select public.get_club_heads('00000000-0000-0000-0000-000000000000'::uuid);
 - `get_active_student_ids()` returns active student ids for event publication fan-out. It has the same trusted-only execute restriction.
 - `mark_notification_read(notification_id)` and `mark_all_notifications_read()` are the only notification read-state write boundaries available to logged-in users.
 - The web notification link contract is `/events/:id`. Until Member 2 registers that detail route, event notifications intentionally render without a link.
+- `list_audit_logs(action, entity_type, actor, from, to, limit, offset)` is the admin-only, paginated audit viewer boundary. It returns actor name, action, entity, details, created time and a total count; the limit is capped at 100.
+- `get_admin_dashboard_stats()` is the admin-only single-RPC source for dashboard club counts, users by role, clubs without an active head, and the five newest audit entries.
+- The audit viewer is available at `/audit-logs` to users with `audit.read`; audit log table reads remain revoked for browser sessions.
 
 SQL Editor smoke test (run as the project owner or service role, never from browser code):
 
@@ -146,6 +149,9 @@ The `20261014001000_m1_notifications_realtime.sql` migration adds `public.notifi
 - The signup trigger creates a profile from `raw_user_meta_data.full_name` and falls back to the email local-part.
 - User and role administration is available at `/roles-permissions` only to users with `users.manage`; role writes go through guarded Postgres RPCs and direct table writes remain revoked.
 - The notification inbox is available at `/notifications`; the app layout bell shows the latest five notifications and refetches on window focus when Realtime is unavailable.
+- The dashboard now selects an admin, Club Head or student view from the real authorization helpers. The dashboard Events slot accepts `audience` and optional `clubIds`; it performs no events, registrations or attendance queries and is reserved for Member 2/3 widgets.
+
+Audit actions use the dot-separated `entity.verb` convention. Existing actions are listed in `docs/schema.md`; teammates should preserve that convention and use a raw action fallback in clients so new actions remain visible before a friendly label is added.
 
 ## Ordered vertical-slice roadmap
 

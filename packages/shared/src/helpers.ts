@@ -3,6 +3,27 @@ import type { Database, Json, NotificationType } from './database.types';
 
 export type AppSupabaseClient = SupabaseClient<Database>;
 
+export type AuditLogEntry = {
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Json;
+  created_at: string;
+  total_count: number;
+};
+
+export type AdminDashboardAuditEntry = Omit<AuditLogEntry, 'total_count'>;
+
+export type AdminDashboardStats = {
+  active_club_count: number;
+  inactive_club_count: number;
+  clubs_without_head_count: number;
+  users_by_role: Array<{ role: string; count: number }>;
+  recent_audit_logs: AdminDashboardAuditEntry[];
+};
+
 export async function hasRole(client: AppSupabaseClient, role: string, clubId?: string | null) {
   const { data, error } = await client.rpc('has_role', { p_role: role, p_club_id: clubId ?? null });
   if (error) throw error;
@@ -264,4 +285,35 @@ export async function getClubHeads(client: AppSupabaseClient, clubId: string) {
   const { data, error } = await client.rpc('get_club_heads', { p_club_id: clubId });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listAuditLogs(
+  client: AppSupabaseClient,
+  filters: {
+    action?: string | null;
+    entityType?: string | null;
+    actor?: string | null;
+    from?: string | null;
+    to?: string | null;
+    limit?: number;
+    offset?: number;
+  } = {},
+) {
+  const { data, error } = await client.rpc('list_audit_logs', {
+    p_action: filters.action ?? null,
+    p_entity_type: filters.entityType ?? null,
+    p_actor: filters.actor ?? null,
+    p_from: filters.from ?? null,
+    p_to: filters.to ?? null,
+    p_limit: filters.limit ?? 25,
+    p_offset: filters.offset ?? 0,
+  });
+  if (error) throw error;
+  return (data ?? []) as AuditLogEntry[];
+}
+
+export async function getAdminDashboardStats(client: AppSupabaseClient) {
+  const { data, error } = await client.rpc('get_admin_dashboard_stats');
+  if (error) throw error;
+  return data as unknown as AdminDashboardStats;
 }
