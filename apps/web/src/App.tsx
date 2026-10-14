@@ -18,6 +18,7 @@ import { ClubDetailPage } from './pages/ClubDetailPage';
 import { ManageClubPage } from './pages/ManageClubPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { NotificationsProvider } from './context/NotificationContext';
+import { AuditLogPage } from './pages/AuditLogPage';
 
 export function App() {
   return (
@@ -41,6 +42,7 @@ export function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="audit-logs" element={<AuditLogPage />} />
                 <Route path="roles-permissions" element={<RoleManagementPage />} />
                 <Route path="clubs" element={<ClubDirectoryPage />} />
                 <Route path="clubs/:clubId/manage" element={<ManageClubPage />} />
