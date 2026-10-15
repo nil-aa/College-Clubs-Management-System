@@ -371,6 +371,20 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: Database['public']['Tables']['event_attendance_sessions']['Row'];
       };
+      list_my_event_participation: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          registration_id: string;
+          event_id: string;
+          event_title: string;
+          club_name: string;
+          venue: string;
+          starts_at: string;
+          registration_status: string;
+          attendance_status: Database['public']['Enums']['attendance_status'] | null;
+          attendance_finalized: boolean;
+        }>;
+      };
       list_student_events: {
         Args: {
           p_search?: string | null;
