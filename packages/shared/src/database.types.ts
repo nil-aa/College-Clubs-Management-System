@@ -302,6 +302,18 @@ export type Database = {
           registration_count: number;
         }>;
       };
+      list_event_participants: {
+        Args: { p_event_id: string };
+        Returns: Array<{
+          registration_id: string;
+          student_id: string;
+          full_name: string;
+          department: string | null;
+          roll_number: string | null;
+          registration_status: string;
+          registered_at: string;
+        }>;
+      };
       list_student_events: {
         Args: {
           p_search?: string | null;
