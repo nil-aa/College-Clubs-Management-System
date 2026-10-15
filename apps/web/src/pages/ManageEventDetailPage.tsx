@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { cancelEvent, getManagedEvent, publishEvent, postponeEvent, type ManagedEvent } from '@club-management/shared';
+import {
+  cancelEvent,
+  getManagedEvent,
+  publishEvent,
+  postponeEvent,
+  type Database,
+  type ManagedEvent,
+} from '@club-management/shared';
 import { errorMessage } from '../features/clubs/types';
 import { eventStatusLabel, fieldClass, formatEventDate, localInputToIso, panelClass, primaryButtonClass, secondaryButtonClass, toDateTimeLocal } from '../features/events/eventUtils';
 import { supabase } from '../lib/supabase';
+
+type EventParticipant = Database['public']['Functions']['list_event_participants']['Returns'][number];
 
 export function ManageEventDetailPage() {
   const { eventId = '' } = useParams();
@@ -14,6 +23,30 @@ export function ManageEventDetailPage() {
   const [success, setSuccess] = useState('');
   const [postponeOpen, setPostponeOpen] = useState(false);
   const [schedule, setSchedule] = useState({ start: '', end: '', deadline: '' });
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(true);
+  const [participantsError, setParticipantsError] = useState('');
+
+  const loadParticipants = useCallback(async () => {
+    if (!eventId) return;
+    setParticipantsLoading(true);
+    setParticipantsError('');
+    try {
+      const { data, error: participantsQueryError } = await supabase.rpc(
+        'list_event_participants',
+        { p_event_id: eventId },
+      );
+      if (participantsQueryError) throw participantsQueryError;
+      setParticipants(data ?? []);
+    } catch (participantsLoadError) {
+      setParticipantsError(errorMessage(participantsLoadError));
+      setParticipants([]);
+    } finally {
+      setParticipantsLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => { void loadParticipants(); }, [loadParticipants]);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -72,7 +105,102 @@ export function ManageEventDetailPage() {
         {['PUBLISHED', 'POSTPONED'].includes(event.status) && <button className="rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-4 focus:ring-rose-300 disabled:opacity-60" disabled={working} onClick={() => void perform('cancel')} type="button">Cancel event</button>}
         {event.published_at && <Link className={secondaryButtonClass} to={`/events/${event.event_id}`}>Student view</Link>}
       </div>
-      <p className="mt-5 rounded-2xl bg-lavender p-4 text-sm text-slateDark/75">Participant names are not available yet because the attendance module’s authorized participant-list API has not been added. The count above is from the managed-event API.</p>
+    </section>
+    <section aria-labelledby="participants-heading" className={panelClass}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-slateDark/65">Event operations</p>
+          <h2 id="participants-heading" className="mt-1 text-2xl font-bold">
+            Registered participants
+          </h2>
+          <p className="mt-1 text-sm text-slateDark/70">
+            Student details and registration status for this event.
+          </p>
+        </div>
+        <button
+          className={secondaryButtonClass}
+          disabled={participantsLoading}
+          onClick={() => void loadParticipants()}
+          type="button"
+        >
+          {participantsLoading ? 'Refreshing…' : 'Refresh list'}
+        </button>
+      </div>
+      {participantsError && (
+        <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
+          {participantsError}
+        </p>
+      )}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl bg-mint/60 p-4">
+          <p className="text-sm font-semibold text-slateDark/70">Currently registered</p>
+          <p className="mt-1 text-2xl font-bold">
+            {
+              participants.filter(
+                (participant) => participant.registration_status === 'REGISTERED',
+              ).length
+            }
+          </p>
+        </div>
+        <div className="rounded-2xl bg-lavender p-4">
+          <p className="text-sm font-semibold text-slateDark/70">Cancelled registrations</p>
+          <p className="mt-1 text-2xl font-bold">
+            {
+              participants.filter(
+                (participant) => participant.registration_status === 'CANCELLED',
+              ).length
+            }
+          </p>
+        </div>
+      </div>
+      {participantsLoading ? (
+        <p role="status" className="py-8 text-center text-sm text-slateDark/70">
+          Loading participants…
+        </p>
+      ) : participants.length === 0 ? (
+        <p className="py-8 text-center text-sm text-slateDark/70">
+          No registrations have been made for this event yet.
+        </p>
+      ) : (
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-lavender text-xs uppercase tracking-wide text-slateDark/70">
+              <tr>
+                <th className="px-4 py-3">Student</th>
+                <th className="px-4 py-3">Department</th>
+                <th className="px-4 py-3">Register number</th>
+                <th className="px-4 py-3">Registered</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-mutedSlate/20">
+              {participants.map((participant) => (
+                <tr key={participant.registration_id}>
+                  <td className="px-4 py-3 font-semibold">{participant.full_name}</td>
+                  <td className="px-4 py-3">{participant.department || '—'}</td>
+                  <td className="px-4 py-3 font-mono">{participant.roll_number || '—'}</td>
+                  <td className="px-4 py-3">
+                    {new Date(participant.registered_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                        participant.registration_status === 'REGISTERED'
+                          ? 'bg-mint text-slateDark'
+                          : 'bg-lavender text-slateDark/70'
+                      }`}
+                    >
+                      {participant.registration_status === 'REGISTERED'
+                        ? 'Registered'
+                        : 'Cancelled'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
     {postponeOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-slateDark/50 p-4"><section aria-labelledby="postpone-heading" aria-modal="true" className={`${panelClass} w-full max-w-xl`} role="dialog"><h2 id="postpone-heading" className="text-xl font-bold">Postpone event</h2><p className="mt-1 text-sm text-slateDark/70">Choose the replacement schedule. Registered participants will be notified.</p><form className="mt-5 space-y-4" onSubmit={(e) => void submitPostpone(e)}><label className="block space-y-2 text-sm font-semibold" htmlFor="new-start">New start<input id="new-start" type="datetime-local" required className={fieldClass} value={schedule.start} onChange={(e) => setSchedule({ ...schedule, start: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-end">New end<input id="new-end" type="datetime-local" required className={fieldClass} value={schedule.end} onChange={(e) => setSchedule({ ...schedule, end: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-deadline">New registration deadline<input id="new-deadline" type="datetime-local" required className={fieldClass} value={schedule.deadline} onChange={(e) => setSchedule({ ...schedule, deadline: e.target.value })} /></label><div className="flex gap-3"><button className={primaryButtonClass} disabled={working} type="submit">{working ? 'Postponing…' : 'Confirm postponement'}</button><button className={secondaryButtonClass} disabled={working} onClick={() => setPostponeOpen(false)} type="button">Close</button></div></form></section></div>}
   </div>;
