@@ -117,6 +117,13 @@ export function AppLayout() {
           <NavItem label="Participation History" to="/participation-history" />
           {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
           {managedEventClubs.length > 0 && <NavItem label="OD Sheets" to="/od-sheets" />}
+          {managedEventClubs.length > 0 ? (
+            <NavItem label="Attendance Reports" to="/attendance-reports" />
+          ) : (
+            <PermissionNavItem
+              item={{ label: 'Attendance Reports', to: '/attendance-reports', permission: 'events.manage', clubId: null }}
+            />
+          )}
           <NavItem label="Dashboard" to="/dashboard" />
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
