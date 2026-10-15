@@ -237,6 +237,50 @@ export type Database = {
         Update: Partial<{ status: string }>;
         Relationships: [];
       };
+      event_attendance_sessions: {
+        Row: {
+          id: string;
+          event_id: string;
+          club_id: string;
+          status: string;
+          finalized_by: string | null;
+          finalized_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<{
+          event_id: string;
+          club_id: string;
+          status: string;
+          finalized_by: string | null;
+          finalized_at: string | null;
+        }>;
+        Update: Partial<{ status: string; finalized_by: string | null; finalized_at: string | null }>;
+        Relationships: [];
+      };
+      event_attendance: {
+        Row: {
+          id: string;
+          event_id: string;
+          student_id: string;
+          status: Database['public']['Enums']['attendance_status'];
+          notes: string | null;
+          marked_by: string;
+          marked_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<{
+          event_id: string;
+          student_id: string;
+          status: Database['public']['Enums']['attendance_status'];
+          notes: string | null;
+          marked_by: string;
+        }>;
+        Update: Partial<{
+          status: Database['public']['Enums']['attendance_status'];
+          notes: string | null;
+        }>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -313,6 +357,19 @@ export type Database = {
           registration_status: string;
           registered_at: string;
         }>;
+      };
+      mark_event_attendance: {
+        Args: {
+          p_event_id: string;
+          p_student_id: string;
+          p_status: Database['public']['Enums']['attendance_status'];
+          p_notes?: string | null;
+        };
+        Returns: Database['public']['Tables']['event_attendance']['Row'];
+      };
+      finalize_event_attendance: {
+        Args: { p_event_id: string };
+        Returns: Database['public']['Tables']['event_attendance_sessions']['Row'];
       };
       list_student_events: {
         Args: {
@@ -553,7 +610,10 @@ export type Database = {
       };
       get_admin_dashboard_stats: { Args: Record<string, never>; Returns: Json };
     };
-    Enums: Record<string, string>;
+    Enums: Record<string, string> & {
+      attendance_status: 'PRESENT' | 'ABSENT' | 'EXCUSED';
+      attendance_session_status: 'OPEN' | 'FINALIZED';
+    };
     CompositeTypes: Record<string, never>;
   };
 };
