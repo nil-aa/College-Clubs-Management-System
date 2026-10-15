@@ -281,6 +281,48 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      od_sheets: {
+        Row: {
+          id: string;
+          event_id: string;
+          club_id: string;
+          title: string;
+          student_fields: string[];
+          event_fields: string[];
+          event_data: Json;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Partial<{
+          event_id: string;
+          club_id: string;
+          title: string;
+          student_fields: string[];
+          event_fields: string[];
+          event_data: Json;
+          created_by: string;
+        }>;
+        Update: Partial<{ title: string; student_fields: string[]; event_fields: string[] }>;
+        Relationships: [];
+      };
+      od_sheet_students: {
+        Row: {
+          id: string;
+          od_sheet_id: string;
+          student_id: string;
+          attendance_status: Database['public']['Enums']['attendance_status'];
+          student_data: Json;
+          created_at: string;
+        };
+        Insert: Partial<{
+          od_sheet_id: string;
+          student_id: string;
+          attendance_status: Database['public']['Enums']['attendance_status'];
+          student_data: Json;
+        }>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -384,6 +426,15 @@ export type Database = {
           attendance_status: Database['public']['Enums']['attendance_status'] | null;
           attendance_finalized: boolean;
         }>;
+      };
+      generate_od_sheet: {
+        Args: {
+          p_event_id: string;
+          p_title: string;
+          p_student_fields: string[];
+          p_event_fields?: string[];
+        };
+        Returns: string;
       };
       list_student_events: {
         Args: {
