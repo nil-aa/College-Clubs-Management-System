@@ -116,6 +116,7 @@ export function AppLayout() {
           <NavItem label="My Registrations" to="/my-registrations" />
           <NavItem label="Participation History" to="/participation-history" />
           {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
+          {managedEventClubs.length > 0 && <NavItem label="OD Sheets" to="/od-sheets" />}
           <NavItem label="Dashboard" to="/dashboard" />
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
