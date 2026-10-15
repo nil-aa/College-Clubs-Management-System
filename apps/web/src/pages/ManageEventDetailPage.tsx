@@ -9,6 +9,7 @@ import {
   type ManagedEvent,
 } from '@club-management/shared';
 import { errorMessage } from '../features/clubs/types';
+import { AttendanceEditor } from '../features/events/AttendanceEditor';
 import { eventStatusLabel, fieldClass, formatEventDate, localInputToIso, panelClass, primaryButtonClass, secondaryButtonClass, toDateTimeLocal } from '../features/events/eventUtils';
 import { supabase } from '../lib/supabase';
 
@@ -202,6 +203,7 @@ export function ManageEventDetailPage() {
         </div>
       )}
     </section>
+    <AttendanceEditor eventId={event.event_id} participants={participants} />
     {postponeOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-slateDark/50 p-4"><section aria-labelledby="postpone-heading" aria-modal="true" className={`${panelClass} w-full max-w-xl`} role="dialog"><h2 id="postpone-heading" className="text-xl font-bold">Postpone event</h2><p className="mt-1 text-sm text-slateDark/70">Choose the replacement schedule. Registered participants will be notified.</p><form className="mt-5 space-y-4" onSubmit={(e) => void submitPostpone(e)}><label className="block space-y-2 text-sm font-semibold" htmlFor="new-start">New start<input id="new-start" type="datetime-local" required className={fieldClass} value={schedule.start} onChange={(e) => setSchedule({ ...schedule, start: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-end">New end<input id="new-end" type="datetime-local" required className={fieldClass} value={schedule.end} onChange={(e) => setSchedule({ ...schedule, end: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-deadline">New registration deadline<input id="new-deadline" type="datetime-local" required className={fieldClass} value={schedule.deadline} onChange={(e) => setSchedule({ ...schedule, deadline: e.target.value })} /></label><div className="flex gap-3"><button className={primaryButtonClass} disabled={working} type="submit">{working ? 'Postponing…' : 'Confirm postponement'}</button><button className={secondaryButtonClass} disabled={working} onClick={() => setPostponeOpen(false)} type="button">Close</button></div></form></section></div>}
   </div>;
 }
