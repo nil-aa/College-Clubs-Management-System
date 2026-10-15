@@ -114,6 +114,7 @@ export function AppLayout() {
         <aside className="flex shrink-0 flex-col gap-1 lg:w-64">
           <NavItem label="Events" to="/" />
           <NavItem label="My Registrations" to="/my-registrations" />
+          <NavItem label="Participation History" to="/participation-history" />
           {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
           <NavItem label="Dashboard" to="/dashboard" />
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">

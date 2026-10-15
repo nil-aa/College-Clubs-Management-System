@@ -25,6 +25,7 @@ import { MyRegistrationsPage } from './pages/MyRegistrationsPage';
 import { ManageEventsPage } from './pages/ManageEventsPage';
 import { EventFormPage } from './pages/EventFormPage';
 import { ManageEventDetailPage } from './pages/ManageEventDetailPage';
+import { MyParticipationPage } from './pages/MyParticipationPage';
 
 export function App() {
   return (
@@ -50,6 +51,7 @@ export function App() {
                 <Route path="events" element={<EventsPage />} />
                 <Route path="events/:eventId" element={<EventDetailPage />} />
                 <Route path="my-registrations" element={<MyRegistrationsPage />} />
+                <Route path="participation-history" element={<MyParticipationPage />} />
                 <Route path="manage-events" element={<ManageEventsPage />} />
                 <Route path="manage-events/new" element={<EventFormPage />} />
                 <Route path="manage-events/:eventId/edit" element={<EventFormPage />} />
