@@ -436,6 +436,23 @@ export type Database = {
         };
         Returns: string;
       };
+      list_attendance_dashboard: {
+        Args: { p_club_id?: string | null; p_limit?: number; p_offset?: number };
+        Returns: Array<{
+          event_id: string;
+          club_id: string;
+          club_name: string;
+          event_title: string;
+          starts_at: string;
+          event_status: string;
+          registered_count: number;
+          present_count: number;
+          absent_count: number;
+          excused_count: number;
+          unmarked_count: number;
+          attendance_finalized: boolean;
+        }>;
+      };
       list_student_events: {
         Args: {
           p_search?: string | null;
