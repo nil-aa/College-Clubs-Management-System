@@ -28,6 +28,13 @@ import { ManageEventDetailPage } from './pages/ManageEventDetailPage';
 import { MyParticipationPage } from './pages/MyParticipationPage';
 import { OdSheetsPage } from './pages/OdSheetsPage';
 import { AttendanceReportsPage } from './pages/AttendanceReportsPage';
+import { useRole } from './hooks/usePermission';
+
+function HomeRoute() {
+  const { allowed, loading } = useRole('global_admin');
+  if (loading) return <div className="rounded-3xl bg-white p-8">Loading your workspace…</div>;
+  return <Navigate to={allowed ? '/dashboard' : '/events'} replace />;
+}
 
 export function App() {
   return (
@@ -48,7 +55,7 @@ export function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route index element={<EventsPage />} />
+                <Route index element={<HomeRoute />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="events" element={<EventsPage />} />
                 <Route path="events/:eventId" element={<EventDetailPage />} />

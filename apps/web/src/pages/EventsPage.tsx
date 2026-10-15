@@ -171,7 +171,7 @@ export function EventCard({ event }: { event: StudentEvent }) {
     <article className={`${panelClass} flex flex-col`}>
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-semibold text-slateDark/65">{event.club_name}</p>
-        <span className="rounded-full bg-mint px-2.5 py-1 text-xs font-bold">{eventStatusLabel(event.status)}</span>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${event.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' : 'bg-mint'}`}>{eventStatusLabel(event.status)}</span>
       </div>
       <h2 className="mt-3 text-xl font-bold">{event.title}</h2>
       <p className="mt-2 line-clamp-3 flex-1 text-sm text-slateDark/75">{event.description || 'No description provided.'}</p>

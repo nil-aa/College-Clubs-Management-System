@@ -66,7 +66,13 @@ function AdminDashboard() {
             <section className="rounded-3xl border border-mutedSlate/25 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-xl font-bold">Users by role</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {stats.users_by_role.map((item) => (
+                {[
+                  ...stats.users_by_role.filter((item) => item.role !== 'admin' && item.role !== 'global_admin'),
+                  {
+                    role: 'admin',
+                    count: stats.users_by_role.find((item) => item.role === 'global_admin')?.count ?? 0,
+                  },
+                ].map((item) => (
                   <div className="rounded-2xl bg-mint/60 px-4 py-3" key={item.role}>
                     <p className="text-sm font-semibold capitalize text-slateDark/70">
                       {item.role.replace('_', ' ')}

@@ -157,14 +157,14 @@ export function ProfilePage() {
             label="Year of study"
             htmlFor="profile-year"
             error={errors.yearOfStudy}
-            hint="Enter a number from 1 to 10."
+            hint="Enter a number from 1 to 5."
           >
             <input
               id="profile-year"
               className={inputClass}
               type="number"
               min="1"
-              max="10"
+              max="5"
               inputMode="numeric"
               value={yearOfStudy}
               onChange={(event) => setYearOfStudy(event.target.value)}

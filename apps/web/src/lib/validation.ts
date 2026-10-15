@@ -50,7 +50,7 @@ export const profileSchema = z.object({
     .regex(/^(?:[0-9]{10})?$/, 'Register number must contain exactly 10 digits.'),
   yearOfStudy: z
     .string()
-    .refine((value) => value === '' || /^(?:[1-9]|10)$/.test(value), 'Enter a year from 1 to 10.'),
+    .refine((value) => value === '' || /^[1-5]$/.test(value), 'Enter a year from 1 to 5.'),
   phone: z
     .string()
     .trim()

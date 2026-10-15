@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { usePermission } from '../hooks/usePermission';
+import { usePermission, useRole } from '../hooks/usePermission';
 import { NotificationBell } from './NotificationBell';
 import { useManagedClubs } from '../features/events/useManagedClubs';
 
@@ -24,10 +24,6 @@ const ownNav: PermissionNav[] = [
   { label: 'Recruitment', to: '/recruitment', permission: 'recruitment.read' },
   { label: 'Committees', to: '/committees', permission: 'committee.read' },
   { label: 'Volunteers', to: '/volunteers', permission: 'volunteers.read' },
-];
-
-const teammateNav = [
-  { label: 'Bookings & Finance (Teammate 3)', to: '/bookings' },
 ];
 
 function PermissionNavItem({ item }: { item: PermissionNav }) {
@@ -55,6 +51,9 @@ function NavItem({ label, to }: { label: string; to: string }) {
 
 export function AppLayout() {
   const { user, profile, signOut } = useAuth();
+  const { allowed: isGlobalAdmin } = useRole('global_admin');
+  const { allowed: isClubHead } = useRole('club_head');
+  const { allowed: isStudent } = useRole('student');
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
@@ -112,7 +111,8 @@ export function AppLayout() {
       </header>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:gap-8">
         <aside className="flex shrink-0 flex-col gap-1 lg:w-64">
-          <NavItem label="Events" to="/" />
+          {isGlobalAdmin && <NavItem label="Dashboard" to="/dashboard" />}
+          <NavItem label="Events" to={isGlobalAdmin ? '/events' : '/'} />
           <NavItem label="My Registrations" to="/my-registrations" />
           <NavItem label="Participation History" to="/participation-history" />
           {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
@@ -124,18 +124,12 @@ export function AppLayout() {
               item={{ label: 'Attendance Reports', to: '/attendance-reports', permission: 'events.manage', clubId: null }}
             />
           )}
-          <NavItem label="Dashboard" to="/dashboard" />
+          {!isGlobalAdmin && !isClubHead && !isStudent && <NavItem label="Dashboard" to="/dashboard" />}
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
           </p>
-          {ownNav.map((item) => (
+          {ownNav.filter((item) => !isGlobalAdmin || !['/memberships', '/recruitment', '/committees', '/volunteers'].includes(item.to)).map((item) => (
             <PermissionNavItem item={item} key={item.to} />
-          ))}
-          <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
-            Team modules
-          </p>
-          {teammateNav.map((item) => (
-            <NavItem {...item} key={item.to} />
           ))}
         </aside>
         <main className="min-w-0 flex-1">
