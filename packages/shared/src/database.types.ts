@@ -42,6 +42,7 @@ export type Database = {
         Update: Partial<{
           full_name: string;
           phone: string | null;
+          roll_number: string | null;
           department: string | null;
           year_of_study: number | null;
         }>;

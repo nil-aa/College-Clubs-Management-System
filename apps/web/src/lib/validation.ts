@@ -44,6 +44,10 @@ export const resetPasswordSchema = z
 export const profileSchema = z.object({
   fullName: z.string().trim().min(2, 'Enter your full name.'),
   department: z.string().trim().max(120, 'Department must be 120 characters or fewer.'),
+  rollNumber: z
+    .string()
+    .trim()
+    .regex(/^(?:[0-9]{10})?$/, 'Register number must contain exactly 10 digits.'),
   yearOfStudy: z
     .string()
     .refine((value) => value === '' || /^(?:[1-9]|10)$/.test(value), 'Enter a year from 1 to 10.'),

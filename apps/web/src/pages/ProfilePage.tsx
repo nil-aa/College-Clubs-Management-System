@@ -11,6 +11,7 @@ export function ProfilePage() {
   const { user, profile, profileLoading, profileError, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
   const [yearOfStudy, setYearOfStudy] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -22,12 +23,14 @@ export function ProfilePage() {
     if (!profile) return;
     setFullName(profile.full_name);
     setDepartment(profile.department ?? '');
+    setRollNumber(profile.roll_number ?? '');
     setYearOfStudy(profile.year_of_study?.toString() ?? '');
     setPhone(profile.phone ?? '');
   }, [
     profile?.id,
     profile?.full_name,
     profile?.department,
+    profile?.roll_number,
     profile?.year_of_study,
     profile?.phone,
   ]);
@@ -36,7 +39,13 @@ export function ProfilePage() {
     event.preventDefault();
     setFormError('');
     setSuccess('');
-    const parsed = profileSchema.safeParse({ fullName, department, yearOfStudy, phone });
+    const parsed = profileSchema.safeParse({
+      fullName,
+      department,
+      rollNumber,
+      yearOfStudy,
+      phone,
+    });
     if (!parsed.success) {
       setErrors(issuesToFieldErrors(parsed.error.issues));
       return;
@@ -52,6 +61,7 @@ export function ProfilePage() {
       .update({
         full_name: parsed.data.fullName,
         department: parsed.data.department || null,
+        roll_number: parsed.data.rollNumber || null,
         year_of_study: parsed.data.yearOfStudy ? Number(parsed.data.yearOfStudy) : null,
         phone: parsed.data.phone || null,
       })
@@ -162,6 +172,25 @@ export function ProfilePage() {
             />
           </FormField>
         </div>
+        <FormField
+          label="Register number"
+          htmlFor="profile-roll-number"
+          error={errors.rollNumber}
+          hint="Enter the 10-digit number on your student ID."
+        >
+          <input
+            id="profile-roll-number"
+            className={inputClass}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={10}
+            pattern="[0-9]{10}"
+            value={rollNumber}
+            onChange={(event) => setRollNumber(event.target.value)}
+            aria-invalid={Boolean(errors.rollNumber)}
+          />
+        </FormField>
         <FormField label="Phone" htmlFor="profile-phone" error={errors.phone}>
           <input
             id="profile-phone"
