@@ -31,6 +31,7 @@ export function EventDetailPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [overlapWarning, setOverlapWarning] = useState<{ count: number; sampleTitle: string } | null>(null);
   const registrationInFlight = useRef(false);
   const canRegister = isStudent || managedClubs.length > 0;
   const canManage = event ? managedClubs.some((club) => club.id === event.club_id) : false;
@@ -60,7 +61,7 @@ export function EventDetailPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function changeRegistration() {
+  async function changeRegistration(skipOverlapCheck = false) {
     if (!event || registrationInFlight.current) return;
     registrationInFlight.current = true;
     setWorking(true);
@@ -73,26 +74,27 @@ export function EventDetailPage() {
         setSuccess('Your registration was cancelled.');
         setRegistrationStatus('CANCELLED');
       } else {
-        const registrations = await listMyEventRegistrations(supabase, { limit: 100, offset: 0 });
-        let allRegistrations = registrations;
-        for (let offset = 100; registrations.length === 100; offset += 100) {
-          const page = await listMyEventRegistrations(supabase, { limit: 100, offset });
-          allRegistrations = allRegistrations.concat(page);
-          if (page.length < 100) break;
+        if (!skipOverlapCheck) {
+          const registrations = await listMyEventRegistrations(supabase, { limit: 100, offset: 0 });
+          let allRegistrations = registrations;
+          for (let offset = 100; registrations.length === 100; offset += 100) {
+            const page = await listMyEventRegistrations(supabase, { limit: 100, offset });
+            allRegistrations = allRegistrations.concat(page);
+            if (page.length < 100) break;
+          }
+          const overlaps = allRegistrations.filter((registration) =>
+            registration.registration_status === 'REGISTERED'
+            && ['PUBLISHED', 'POSTPONED'].includes(registration.event_status)
+            && registration.event_id !== event.event_id
+            && new Date(registration.start_time).getTime() < new Date(event.end_time).getTime()
+            && new Date(registration.end_time).getTime() > new Date(event.start_time).getTime(),
+          );
+          if (overlaps.length) {
+            setOverlapWarning({ count: overlaps.length, sampleTitle: overlaps[0].title });
+            return;
+          }
         }
-        const overlaps = allRegistrations.filter((registration) =>
-          registration.registration_status === 'REGISTERED'
-          && ['PUBLISHED', 'POSTPONED'].includes(registration.event_status)
-          && registration.event_id !== event.event_id
-          && new Date(registration.start_time).getTime() < new Date(event.end_time).getTime()
-          && new Date(registration.end_time).getTime() > new Date(event.start_time).getTime(),
-        );
-        if (overlaps.length) {
-          const overlapMessage = overlaps.length === 1
-            ? `You are already registered for “${overlaps[0].title}” at a time that overlaps this event.`
-            : `You are already registered for ${overlaps.length} events that overlap this event, including “${overlaps[0].title}”.`;
-          if (!window.confirm(`${overlapMessage} Continue registering for “${event.title}”?`)) return;
-        }
+        setOverlapWarning(null);
         await registerForEvent(supabase, event.event_id);
         setSuccess('You are registered for this event.');
         setRegistrationStatus('REGISTERED');
@@ -143,6 +145,28 @@ export function EventDetailPage() {
           <Link className={secondaryButtonClass} to="/my-registrations">My registrations</Link>
         </div>
       </article>
+      {overlapWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slateDark/60 p-4" onKeyDown={(e) => { if (e.key === 'Escape') setOverlapWarning(null); }}>
+          <section
+            aria-labelledby="registration-overlap-title"
+            aria-modal="true"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            role="dialog"
+          >
+            <h2 className="text-xl font-bold" id="registration-overlap-title">Overlapping event registration</h2>
+            <p className="mt-3 text-sm leading-6 text-slateDark/80">
+              {overlapWarning.count === 1
+                ? <>You are already registered for <strong>{overlapWarning.sampleTitle}</strong> at a time that overlaps this event.</>
+                : <>You are already registered for <strong>{overlapWarning.count} events</strong> that overlap this event, including <strong>{overlapWarning.sampleTitle}</strong>.</>}
+              {' '}Would you like to continue registering for <strong>{event.title}</strong>?
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button autoFocus className={secondaryButtonClass} onClick={() => setOverlapWarning(null)} type="button">Cancel</button>
+              <button className={primaryButtonClass} onClick={() => { setOverlapWarning(null); void changeRegistration(true); }} type="button">Continue</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

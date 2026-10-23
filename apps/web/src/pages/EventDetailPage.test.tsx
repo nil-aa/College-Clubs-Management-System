@@ -52,13 +52,12 @@ describe('EventDetailPage', () => {
       event_id: 'other-event', title: 'Other Event', registration_status: 'REGISTERED',
       event_status: 'PUBLISHED', start_time: '2030-02-03T11:00:00Z', end_time: '2030-02-03T13:00:00Z',
     }]);
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/events/event-other-club']}><Routes><Route path="/events/:eventId" element={<EventDetailPage />} /></Routes></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: 'Register' }));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Other Event'));
+    expect(await screen.findByRole('dialog', { name: 'Overlapping event registration' })).toHaveTextContent('Other Event');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(registerForEventMock).not.toHaveBeenCalled();
-    confirm.mockRestore();
   });
 
   it('continues registration after the student confirms an overlap warning', async () => {
@@ -72,14 +71,14 @@ describe('EventDetailPage', () => {
         event_status: 'PUBLISHED', start_time: '2030-02-03T09:00:00Z', end_time: '2030-02-03T11:00:00Z',
       },
     ]);
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/events/event-other-club']}><Routes><Route path="/events/:eventId" element={<EventDetailPage />} /></Routes></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: 'Register' }));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('2 events'));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Other Event'));
+    expect(await screen.findByRole('dialog', { name: 'Overlapping event registration' })).toHaveTextContent('2 events');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Other Event');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(registerForEventMock).toHaveBeenCalledWith(expect.anything(), 'event-other-club');
     expect(await screen.findByText('You are registered for this event.')).toBeInTheDocument();
-    confirm.mockRestore();
+    expect(listMyEventRegistrationsMock).toHaveBeenCalledTimes(1);
   });
 });
