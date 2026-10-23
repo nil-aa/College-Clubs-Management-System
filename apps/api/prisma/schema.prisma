@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas   = ["public"]
+}
+
+enum profile_status {
+  active
+  suspended
+  deactivated
+  @@schema("public")
+}
+
+enum club_status {
+  active
+  archived
+  @@schema("public")
+}
+
+enum assignment_status {
+  active
+  inactive
+  completed
+  @@schema("public")
+}
+
+enum membership_status {
+  pending
+  active
+  rejected
+  suspended
+  left
+  @@schema("public")
+}
+
+enum notification_status {
+  unread
+  read
+  archived
+  @@schema("public")
+}
+
+enum attendance_status {
+  PRESENT
+  ABSENT
+  EXCUSED
+  @@schema("public")
+}
+
+enum attendance_session_status {
+  OPEN
+  FINALIZED
+  @@schema("public")
+}
+
+model Profile {
+  id            String        @id @db.Uuid
+  fullName      String        @map("full_name")
+  email         String
+  rollNumber    String?       @map("roll_number")
+  avatarUrl     String?       @map("avatar_url")
+  phone         String?
+  bio           String?
+  department    String?
+  yearOfStudy   Int?          @map("year_of_study") @db.SmallInt
+  status        profile_status
+  isActive      Boolean       @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  clubsCreated  Club[]        @relation("ClubCreator")
+  userRoles     UserRole[]    @relation("RoleUser")
+  auditLogs     AuditLog[]    @relation("AuditActor")
+  notifications Notification[]
+  memberships   ClubMembership[]
+  assignedRoles UserRole[]    @relation("RoleAssigner")
+  eventsCreated Event[]       @relation("EventCreator")
+  finalizedAttendanceSessions AttendanceSession[] @relation("AttendanceFinalizer")
+  markedAttendance EventAttendance[] @relation("AttendanceMarker")
+  odSheetsCreated OdSheet[]   @relation("OdSheetCreator")
+  eventRegistrations EventRegistration[]
+  attendanceRecords EventAttendance[] @relation("AttendanceStudent")
+  odSheetStudents OdSheetStudent[]
+  @@map("profiles")
+  @@schema("public")
+}
+
+model Role {
+  id            String           @id @default(uuid()) @db.Uuid
+  code          String           @unique
+  name          String
+  description   String?
+  isGlobal      Boolean          @map("is_global")
+  isSystem      Boolean          @map("is_system")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  permissions   RolePermission[]
+  assignments   UserRole[]
+  @@map("roles")
+  @@schema("public")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique
+  name        String
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roles       RolePermission[]
+  @@map("permissions")
+  @@schema("public")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+  @@schema("public")
+}
+
+model UserRole {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  roleId        String           @map("role_id") @db.Uuid
+  clubId        String?          @map("club_id") @db.Uuid
+  assignedBy    String?          @map("assigned_by") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at")
+  assignedAt    DateTime         @default(now()) @map("assigned_at")
+  status        assignment_status
+  isActive      Boolean          @map("is_active")
+  deactivatedAt DateTime?        @map("deactivated_at")
+  deactivatedBy String?          @map("deactivated_by") @db.Uuid
+  role          Role             @relation(fields: [roleId], references: [id])
+  user          Profile          @relation("RoleUser", fields: [userId], references: [id])
+  assigner      Profile?         @relation("RoleAssigner", fields: [assignedBy], references: [id])
+  club          Club?            @relation(fields: [clubId], references: [id])
+  @@map("user_roles")
+  @@schema("public")
+}
+
+model Club {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String        @unique
+  description  String?
+  category     String?
+  contactEmail String?       @map("contact_email")
+  status       club_status
+  isActive     Boolean       @map("is_active")
+  createdBy    String?       @map("created_by") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  creator      Profile?      @relation("ClubCreator", fields: [createdBy], references: [id])
+  userRoles    UserRole[]
+  memberships  ClubMembership[]
+  events       Event[]
+  attendanceSessions AttendanceSession[]
+  odSheets     OdSheet[]
+  @@map("clubs")
+  @@schema("public")
+}
+
+model ClubMembership {
+  id        String           @id @default(uuid()) @db.Uuid
+  clubId    String           @map("club_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  status    membership_status
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  club      Club             @relation(fields: [clubId], references: [id])
+  user      Profile          @relation(fields: [userId], references: [id])
+  @@unique([clubId, userId])
+  @@map("club_memberships")
+  @@schema("public")
+}
+
+model AuditLog {
+  id         BigInt    @id @default(autoincrement())
+  actor      String?   @db.Uuid
+  action     String
+  entityType String    @map("entity_type")
+  entityId   String?   @map("entity_id") @db.Uuid
+  details    Json
+  createdAt  DateTime  @default(now()) @map("created_at")
+  actorProfile Profile? @relation("AuditActor", fields: [actor], references: [id])
+  @@map("audit_logs")
+  @@schema("public")
+}
+
+model Notification {
+  id            String              @id @default(uuid()) @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  type          String
+  title         String
+  message       String
+  relatedEventId String?            @map("related_event_id") @db.Uuid
+  isRead        Boolean             @map("is_read")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  user          Profile             @relation(fields: [userId], references: [id])
+  @@map("notifications")
+  @@schema("public")
+}
+
+model Event {
+  eventId             String   @id @default(uuid()) @map("event_id") @db.Uuid
+  clubId              String   @map("club_id") @db.Uuid
+  createdBy           String   @map("created_by") @db.Uuid
+  title               String
+  description         String?
+  venue               String
+  category            String?
+  startTime           DateTime @map("start_time")
+  endTime             DateTime @map("end_time")
+  registrationDeadline DateTime @map("registration_deadline")
+  capacity            Int
+  status              String
+  publishedAt        DateTime? @map("published_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  club                Club @relation(fields: [clubId], references: [id])
+  creator             Profile @relation("EventCreator", fields: [createdBy], references: [id])
+  registrations       EventRegistration[]
+  attendance          EventAttendance[]
+  attendanceSession   AttendanceSession?
+  odSheets            OdSheet[]
+  @@map("events")
+  @@schema("public")
+}
+
+model EventRegistration {
+  registrationId String @id @default(uuid()) @map("registration_id") @db.Uuid
+  eventId        String @map("event_id") @db.Uuid
+  studentId      String @map("student_id") @db.Uuid
+  status         String
+  registeredAt   DateTime @default(now()) @map("registered_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  event          Event @relation(fields: [eventId], references: [eventId])
+  student        Profile @relation(fields: [studentId], references: [id])
+  @@unique([eventId, studentId])
+  @@map("event_registrations")
+  @@schema("public")
+}
+
+model AttendanceSession {
+  id            String @id @default(uuid()) @db.Uuid
+  eventId       String @unique @map("event_id") @db.Uuid
+  clubId        String @map("club_id") @db.Uuid
+  status        attendance_session_status
+  finalizedBy   String? @map("finalized_by") @db.Uuid
+  finalizedAt   DateTime? @map("finalized_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  event         Event @relation(fields: [eventId], references: [eventId])
+  club          Club @relation(fields: [clubId], references: [id])
+  finalizer     Profile? @relation("AttendanceFinalizer", fields: [finalizedBy], references: [id])
+  @@map("event_attendance_sessions")
+  @@schema("public")
+}
+
+model EventAttendance {
+  id        String @id @default(uuid()) @db.Uuid
+  eventId   String @map("event_id") @db.Uuid
+  studentId String @map("student_id") @db.Uuid
+  status    attendance_status
+  notes     String?
+  markedBy  String @map("marked_by") @db.Uuid
+  markedAt  DateTime @default(now()) @map("marked_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  event     Event @relation(fields: [eventId], references: [eventId])
+  student   Profile @relation("AttendanceStudent", fields: [studentId], references: [id])
+  marker    Profile @relation("AttendanceMarker", fields: [markedBy], references: [id])
+  @@unique([eventId, studentId])
+  @@map("event_attendance")
+  @@schema("public")
+}
+
+model OdSheet {
+  id            String @id @default(uuid()) @db.Uuid
+  eventId       String @map("event_id") @db.Uuid
+  clubId        String @map("club_id") @db.Uuid
+  title         String
+  studentFields String[] @map("student_fields")
+  eventFields   String[] @map("event_fields")
+  eventData     Json @map("event_data")
+  createdBy     String @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  event         Event @relation(fields: [eventId], references: [eventId])
+  club          Club @relation(fields: [clubId], references: [id])
+  creator       Profile @relation("OdSheetCreator", fields: [createdBy], references: [id])
+  students      OdSheetStudent[]
+  @@map("od_sheets")
+  @@schema("public")
+}
+
+model OdSheetStudent {
+  id               String @id @default(uuid()) @db.Uuid
+  odSheetId        String @map("od_sheet_id") @db.Uuid
+  studentId        String @map("student_id") @db.Uuid
+  attendanceStatus attendance_status @default(PRESENT) @map("attendance_status")
+  studentData      Json @map("student_data")
+  createdAt        DateTime @default(now()) @map("created_at")
+  sheet            OdSheet @relation(fields: [odSheetId], references: [id])
+  student          Profile @relation(fields: [studentId], references: [id])
+  @@unique([odSheetId, studentId])
+  @@map("od_sheet_students")
+  @@schema("public")
+}
