@@ -6,12 +6,7 @@ import { supabase } from '../lib/supabase';
 import { RoleAssignmentForm } from '../features/rbac/RoleAssignmentForm';
 import type { ClubOption, Role, UserOption, UserRoleAssignment } from '../features/rbac/types';
 import { SignupDomainSettings } from '../features/rbac/SignupDomainSettings';
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error && 'message' in error) return String(error.message);
-  return 'Something went wrong. Please try again.';
-}
+import { errorMessage } from '../features/clubs/types';
 
 export function RoleManagementPage() {
   const { allowed, loading: permissionLoading } = usePermission('users.manage');

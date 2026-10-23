@@ -12,6 +12,7 @@ import { markAllNotificationsRead, markNotificationRead } from '@club-management
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import type { AppNotification } from '../features/notifications/types';
+import { errorMessage } from '../features/clubs/types';
 
 type NotificationContextValue = {
   latest: AppNotification[];
@@ -25,12 +26,6 @@ type NotificationContextValue = {
 };
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error && 'message' in error) return String(error.message);
-  return 'Notifications could not be loaded.';
-}
 
 function notificationSelect() {
   return 'id, user_id, type, title, message, related_event_id, is_read, channels, metadata, status, read_at, created_at';
@@ -53,26 +48,28 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
-    const [latestResult, unreadResult] = await Promise.all([
-      supabase
-        .from('notifications')
-        .select(notificationSelect())
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_read', false),
-    ]);
-    const failure = latestResult.error ?? unreadResult.error;
-    if (failure) {
-      setError(errorMessage(failure));
-    } else {
+    try {
+      const [latestResult, unreadResult] = await Promise.all([
+        supabase
+          .from('notifications')
+          .select(notificationSelect())
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_read', false),
+      ]);
+      const failure = latestResult.error ?? unreadResult.error;
+      if (failure) throw failure;
       setError('');
       setLatest((latestResult.data ?? []) as unknown as AppNotification[]);
       setUnreadCount(unreadResult.count ?? 0);
+    } catch (failure) {
+      setError(`Notifications could not be refreshed. ${errorMessage(failure)}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -126,6 +123,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       } catch (markError) {
         setLatest(previousLatest);
         setUnreadCount(previousCount);
+        setError(`Could not update this notification. ${errorMessage(markError)}`);
         throw markError;
       }
     },
@@ -142,6 +140,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch (markError) {
       setLatest(previousLatest);
       setUnreadCount(previousCount);
+      setError(`Could not update notifications. ${errorMessage(markError)}`);
       throw markError;
     }
   }, [latest, unreadCount]);

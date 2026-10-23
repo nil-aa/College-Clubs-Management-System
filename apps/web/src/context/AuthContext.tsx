@@ -42,11 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setLoading(false);
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error)
+          setProfileError(new Error('Could not restore your session. Please log in again.'));
+        setSession(data.session);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setProfileError(
+          new Error('Could not reach the account service. Refresh the page or log in again.'),
+        );
+        setLoading(false);
+      });
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -67,21 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setProfileLoading(true);
     setProfileError(null);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(
-        'id, full_name, email, roll_number, avatar_url, phone, department, year_of_study, bio, status, is_active, created_at, updated_at',
-      )
-      .eq('id', session.user.id)
-      .single();
-    setProfileLoading(false);
-    if (error) {
-      const nextError = new Error(error.message);
-      setProfileError(nextError);
-      throw nextError;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(
+          'id, full_name, email, roll_number, avatar_url, phone, department, year_of_study, bio, status, is_active, created_at, updated_at',
+        )
+        .eq('id', session.user.id)
+        .single();
+      if (error) {
+        const nextError = new Error(
+          'We could not load your profile. Check your connection or try again.',
+        );
+        setProfileError(nextError);
+        throw nextError;
+      }
+      setProfile(data);
+      return data;
+    } finally {
+      setProfileLoading(false);
     }
-    setProfile(data);
-    return data;
   }, [session]);
 
   useEffect(() => {

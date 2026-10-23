@@ -32,14 +32,19 @@ export function LoginPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const { error } = await signIn(parsed.data.email, parsed.data.password);
-    setSubmitting(false);
-    if (error) {
-      setFormError(authErrorMessage(error.message));
-      return;
+    try {
+      const { error } = await signIn(parsed.data.email, parsed.data.password);
+      if (error) {
+        setFormError(authErrorMessage(error));
+        return;
+      }
+      const from = typeof location.state?.from === 'string' ? location.state.from : '/';
+      navigate(from, { replace: true });
+    } catch (error) {
+      setFormError(authErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
-    const from = typeof location.state?.from === 'string' ? location.state.from : '/';
-    navigate(from, { replace: true });
   }
 
   return (

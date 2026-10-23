@@ -19,8 +19,24 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   try {
-    const body = (await request.json()) as NotificationRequest;
-    if (!body.userId || !body.type || !body.title || !body.message) {
+    let body: NotificationRequest;
+    try {
+      body = (await request.json()) as NotificationRequest;
+    } catch {
+      return json({ error: 'Request body must be valid JSON' }, 400);
+    }
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      typeof body.userId !== 'string' ||
+      !body.userId ||
+      typeof body.type !== 'string' ||
+      !body.type ||
+      typeof body.title !== 'string' ||
+      !body.title ||
+      typeof body.message !== 'string' ||
+      !body.message
+    ) {
       return json({ error: 'userId, type, title and message are required' }, 400);
     }
 
@@ -47,14 +63,19 @@ Deno.serve(async (request) => {
       p_channels: channels,
       p_metadata: body.metadata ?? {},
     });
-    if (error) throw error;
+    if (error) {
+      console.error('[notifications] notification insert failed', {
+        code: error.code,
+        operation: 'send_notification',
+      });
+      return json({ error: 'Unable to create notification' }, 500);
+    }
 
     if (!Deno.env.get('EMAIL_PROVIDER') && channels.includes('email')) {
       console.info(
         '[notifications] EMAIL_PROVIDER is not configured; email delivery was logged only.',
         {
           notificationId: data,
-          userId: body.userId,
         },
       );
     }
@@ -64,7 +85,10 @@ Deno.serve(async (request) => {
       delivery: Deno.env.get('EMAIL_PROVIDER') ? 'queued' : 'logged',
     });
   } catch (error) {
-    console.error('[notifications] request failed', error);
+    console.error('[notifications] request failed', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      operation: 'create_notification',
+    });
     return json({ error: 'Unable to create notification' }, 500);
   }
 });

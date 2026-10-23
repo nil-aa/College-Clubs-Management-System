@@ -31,13 +31,18 @@ export function ForgotPasswordPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const { error } = await resetPasswordForEmail(parsed.data.email);
-    setSubmitting(false);
-    if (error) {
-      setFormError(authErrorMessage(error.message));
-      return;
+    try {
+      const { error } = await resetPasswordForEmail(parsed.data.email);
+      if (error) {
+        setFormError(authErrorMessage(error));
+        return;
+      }
+      setSuccess('If an account exists for that email, a password reset link is on its way.');
+    } catch (error) {
+      setFormError(authErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
-    setSuccess('If an account exists for that email, a password reset link is on its way.');
   }
 
   return (

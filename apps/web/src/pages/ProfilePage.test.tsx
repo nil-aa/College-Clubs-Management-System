@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   update: vi.fn(),
   eq: vi.fn(),
+  select: vi.fn(),
+  maybeSingle: vi.fn(),
 }));
 
 vi.mock('../context/AuthContext', () => ({
@@ -47,7 +49,9 @@ function renderPage() {
 describe('profile form', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.eq.mockResolvedValue({ error: null });
+    mocks.maybeSingle.mockResolvedValue({ data: { id: 'user-1' }, error: null });
+    mocks.select.mockReturnValue({ maybeSingle: mocks.maybeSingle });
+    mocks.eq.mockReturnValue({ select: mocks.select });
     mocks.update.mockReturnValue({ eq: mocks.eq });
     mocks.from.mockReturnValue({ update: mocks.update });
     mocks.refreshProfile.mockResolvedValue(null);
@@ -79,6 +83,7 @@ describe('profile form', () => {
       expect(mocks.update).toHaveBeenCalledWith({
         full_name: 'Updated Member',
         department: 'Computing',
+        roll_number: null,
         year_of_study: 2,
         phone: '+1 555 0100',
       }),
@@ -88,14 +93,28 @@ describe('profile form', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Profile updated successfully.');
   });
 
-  it('shows a database error when the update fails', async () => {
-    mocks.eq.mockResolvedValueOnce({ error: { message: 'Profile update denied' } });
+  it('shows a safe database error when the update fails', async () => {
+    mocks.maybeSingle.mockResolvedValueOnce({
+      error: { code: '42501', message: 'Profile update denied with internal detail' },
+    });
     const user = userEvent.setup();
     renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Profile update denied');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Something went wrong. Please try again.',
+    );
+    expect(screen.queryByText(/internal detail/)).not.toBeInTheDocument();
     expect(mocks.refreshProfile).not.toHaveBeenCalled();
+  });
+
+  it('does not report success when RLS returns no updated row', async () => {
+    mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your profile was not updated.');
+    expect(screen.queryByText('Profile updated successfully.')).not.toBeInTheDocument();
   });
 });
