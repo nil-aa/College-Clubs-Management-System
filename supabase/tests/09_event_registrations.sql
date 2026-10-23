@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(27);
 
 reset role;
 insert into public.events (
@@ -62,7 +62,35 @@ values
     'Other Club Registration Event', 'Club head participation fixture.', 'West Hall', 'Arts',
     now() + interval '8 days', now() + interval '8 days 2 hours',
     now() + interval '7 days', 10, 'PUBLISHED', now()
+  ),
+  (
+    '51000000-0000-0000-0000-000000000008',
+    '20000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'Registration Ended Event', 'Ended fixture.', 'Main Hall', 'Technology',
+    now() + interval '2 days', now() + interval '2 days 2 hours',
+    now() + interval '1 day', 10, 'PUBLISHED', now()
+  ),
+  (
+    '51000000-0000-0000-0000-000000000009',
+    '20000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'Registration In Progress Event', 'In progress fixture.', 'Main Hall', 'Technology',
+    now() + interval '2 days', now() + interval '2 days 2 hours',
+    now() + interval '1 day', 10, 'PUBLISHED', now()
   );
+
+update public.events
+set start_time = now() - interval '3 hours',
+    end_time = now() - interval '1 hour',
+    registration_deadline = now() - interval '4 hours'
+where event_id = '51000000-0000-0000-0000-000000000008';
+
+update public.events
+set start_time = now() - interval '1 hour',
+    end_time = now() + interval '1 hour',
+    registration_deadline = now() + interval '30 minutes'
+where event_id = '51000000-0000-0000-0000-000000000009';
 
 insert into public.event_registrations (event_id, student_id)
 values (
@@ -130,6 +158,12 @@ select throws_ok(
   '22023',
   'Event is not currently accepting registrations.',
   'postponed events cannot accept registrations until republished'
+);
+select throws_ok(
+  $$select * from public.register_for_event('51000000-0000-0000-0000-000000000008')$$,
+  '22023',
+  'This event has already ended.',
+  'the registration RPC explicitly rejects events that have ended'
 );
 select set_config(
   'test.registration_id',
@@ -221,6 +255,10 @@ select throws_ok(
   'P0002',
   'Registration not found.',
   'a student cannot cancel another student registration'
+);
+select lives_ok(
+  $$select * from public.register_for_event('51000000-0000-0000-0000-000000000009')$$,
+  'a student can register after an event starts when its deadline is still open'
 );
 
 reset role;

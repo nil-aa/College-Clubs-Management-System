@@ -8,6 +8,7 @@ export const notificationTypeMeta: Record<NotificationType, { label: string; ico
   registration_cancelled: { label: 'Registration cancelled', icon: '↩' },
   event_postponed: { label: 'Event postponed', icon: '⏰' },
   event_cancelled: { label: 'Event cancelled', icon: '⚠' },
+  event_schedule_updated: { label: 'Event schedule updated', icon: '⏰' },
 };
 
 export function getNotificationMeta(type: string) {

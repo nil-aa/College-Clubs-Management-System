@@ -7,11 +7,13 @@ import { EventDetailPage } from './EventDetailPage';
 const getStudentEventMock = vi.hoisted(() => vi.fn());
 const registerForEventMock = vi.hoisted(() => vi.fn());
 const cancelEventRegistrationMock = vi.hoisted(() => vi.fn());
+const listMyEventRegistrationsMock = vi.hoisted(() => vi.fn());
 const fromMock = vi.hoisted(() => vi.fn());
 vi.mock('@club-management/shared', () => ({
   getStudentEvent: getStudentEventMock,
   registerForEvent: registerForEventMock,
   cancelEventRegistration: cancelEventRegistrationMock,
+  listMyEventRegistrations: listMyEventRegistrationsMock,
 }));
 vi.mock('../lib/supabase', () => ({ supabase: { from: fromMock } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'head-1' } }) }));
@@ -32,6 +34,7 @@ describe('EventDetailPage', () => {
     vi.clearAllMocks();
     getStudentEventMock.mockResolvedValue(event);
     registerForEventMock.mockResolvedValue({ status: 'REGISTERED' });
+    listMyEventRegistrationsMock.mockResolvedValue([]);
     fromMock.mockReturnValue({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) });
   });
 
@@ -42,5 +45,40 @@ describe('EventDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Register' }));
     expect(registerForEventMock).toHaveBeenCalledWith(expect.anything(), 'event-other-club');
     expect(await screen.findByText('You are registered for this event.')).toBeInTheDocument();
+  });
+
+  it('does not register when the student cancels an overlap warning', async () => {
+    listMyEventRegistrationsMock.mockResolvedValue([{
+      event_id: 'other-event', title: 'Other Event', registration_status: 'REGISTERED',
+      event_status: 'PUBLISHED', start_time: '2030-02-03T11:00:00Z', end_time: '2030-02-03T13:00:00Z',
+    }]);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/events/event-other-club']}><Routes><Route path="/events/:eventId" element={<EventDetailPage />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: 'Register' }));
+    expect(await screen.findByRole('dialog', { name: 'Overlapping event registration' })).toHaveTextContent('Other Event');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(registerForEventMock).not.toHaveBeenCalled();
+  });
+
+  it('continues registration after the student confirms an overlap warning', async () => {
+    listMyEventRegistrationsMock.mockResolvedValue([
+      {
+        event_id: 'other-event', title: 'Other Event', registration_status: 'REGISTERED',
+        event_status: 'PUBLISHED', start_time: '2030-02-03T11:00:00Z', end_time: '2030-02-03T13:00:00Z',
+      },
+      {
+        event_id: 'another-event', title: 'Another Event', registration_status: 'REGISTERED',
+        event_status: 'PUBLISHED', start_time: '2030-02-03T09:00:00Z', end_time: '2030-02-03T11:00:00Z',
+      },
+    ]);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/events/event-other-club']}><Routes><Route path="/events/:eventId" element={<EventDetailPage />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: 'Register' }));
+    expect(await screen.findByRole('dialog', { name: 'Overlapping event registration' })).toHaveTextContent('2 events');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Other Event');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(registerForEventMock).toHaveBeenCalledWith(expect.anything(), 'event-other-club');
+    expect(await screen.findByText('You are registered for this event.')).toBeInTheDocument();
+    expect(listMyEventRegistrationsMock).toHaveBeenCalledTimes(1);
   });
 });

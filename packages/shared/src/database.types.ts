@@ -5,7 +5,8 @@ export type NotificationType =
   | 'registration_confirmed'
   | 'registration_cancelled'
   | 'event_postponed'
-  | 'event_cancelled';
+  | 'event_cancelled'
+  | 'event_schedule_updated';
 
 export type Database = {
   public: {
@@ -564,6 +565,21 @@ export type Database = {
         };
         Returns: string;
       };
+      update_event_with_confirmation: {
+        Args: {
+          p_event_id: string;
+          p_title: string;
+          p_description: string | null;
+          p_venue: string;
+          p_category: string | null;
+          p_start_time: string;
+          p_end_time: string;
+          p_registration_deadline: string;
+          p_capacity: number;
+          p_confirm_registered_schedule_change?: boolean;
+        };
+        Returns: string;
+      };
       publish_event: { Args: { p_event_id: string }; Returns: string };
       postpone_event: {
         Args: {
@@ -571,6 +587,16 @@ export type Database = {
           p_start_time?: string | null;
           p_end_time?: string | null;
           p_registration_deadline?: string | null;
+        };
+        Returns: string;
+      };
+      postpone_event_with_confirmation: {
+        Args: {
+          p_event_id: string;
+          p_start_time?: string | null;
+          p_end_time?: string | null;
+          p_registration_deadline?: string | null;
+          p_confirm_registered_schedule_change?: boolean;
         };
         Returns: string;
       };

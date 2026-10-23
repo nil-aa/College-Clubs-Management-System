@@ -23,6 +23,7 @@ export function ManageEventDetailPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [postponeOpen, setPostponeOpen] = useState(false);
+  const [postponeConfirmation, setPostponeConfirmation] = useState<{ startTime: string; endTime: string; registrationDeadline: string } | null>(null);
   const [schedule, setSchedule] = useState({ start: '', end: '', deadline: '' });
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [participantsLoading, setParticipantsLoading] = useState(true);
@@ -79,11 +80,44 @@ export function ManageEventDetailPage() {
     const start = new Date(schedule.start).getTime(); const end = new Date(schedule.end).getTime(); const deadline = new Date(schedule.deadline).getTime();
     if (![start, end, deadline].every(Number.isFinite)) return setError('Enter valid replacement dates and times.');
     if (end <= start) return setError('The new end time must be later than the new start time.');
-    if (deadline > start) return setError('The new registration deadline must be no later than the new start time.');
+    if (deadline > end) return setError('The new registration deadline must be no later than the new end time.');
+    const replacement = { startTime: localInputToIso(schedule.start), endTime: localInputToIso(schedule.end), registrationDeadline: localInputToIso(schedule.deadline) };
+    const scheduleChanged = start !== new Date(event.start_time).getTime()
+      || end !== new Date(event.end_time).getTime()
+      || deadline !== new Date(event.registration_deadline).getTime();
+    if (event.registration_count > 0 && scheduleChanged) {
+      setPostponeConfirmation(replacement);
+      return;
+    }
     setWorking(true); setError(''); setSuccess('');
     try {
-      await postponeEvent(supabase, event.event_id, { startTime: localInputToIso(schedule.start), endTime: localInputToIso(schedule.end), registrationDeadline: localInputToIso(schedule.deadline) });
+      await postponeEvent(supabase, event.event_id, replacement, false);
       setPostponeOpen(false); setSuccess('Event postponed and participants notified.'); await load();
+    } catch (actionError) {
+      const message = errorMessage(actionError);
+      if (message.includes('registered participants')) {
+        try {
+          const freshEvent = await getManagedEvent(supabase, event.event_id) as ManagedEvent | null;
+          if (freshEvent) {
+            setEvent(freshEvent);
+            setPostponeConfirmation(replacement);
+            setError('');
+          } else setError(message);
+        } catch { setError(message); }
+      } else setError(message);
+    }
+    finally { setWorking(false); }
+  }
+
+  async function confirmPostponeScheduleChange() {
+    if (!event || !postponeConfirmation) return;
+    const replacement = postponeConfirmation;
+    setPostponeConfirmation(null);
+    setWorking(true); setError(''); setSuccess('');
+    try {
+      await postponeEvent(supabase, event.event_id, replacement, true);
+      setPostponeOpen(false);
+      setSuccess('Event postponed and participants notified.'); await load();
     } catch (actionError) { setError(errorMessage(actionError)); }
     finally { setWorking(false); }
   }
@@ -204,7 +238,8 @@ export function ManageEventDetailPage() {
       )}
     </section>
     <AttendanceEditor eventId={event.event_id} participants={participants} />
-    {postponeOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-slateDark/50 p-4"><section aria-labelledby="postpone-heading" aria-modal="true" className={`${panelClass} w-full max-w-xl`} role="dialog"><h2 id="postpone-heading" className="text-xl font-bold">Postpone event</h2><p className="mt-1 text-sm text-slateDark/70">Choose the replacement schedule. Registered participants will be notified.</p><form className="mt-5 space-y-4" onSubmit={(e) => void submitPostpone(e)}><label className="block space-y-2 text-sm font-semibold" htmlFor="new-start">New start<input id="new-start" type="datetime-local" required className={fieldClass} value={schedule.start} onChange={(e) => setSchedule({ ...schedule, start: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-end">New end<input id="new-end" type="datetime-local" required className={fieldClass} value={schedule.end} onChange={(e) => setSchedule({ ...schedule, end: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-deadline">New registration deadline<input id="new-deadline" type="datetime-local" required className={fieldClass} value={schedule.deadline} onChange={(e) => setSchedule({ ...schedule, deadline: e.target.value })} /></label><div className="flex gap-3"><button className={primaryButtonClass} disabled={working} type="submit">{working ? 'Postponing…' : 'Confirm postponement'}</button><button className={secondaryButtonClass} disabled={working} onClick={() => setPostponeOpen(false)} type="button">Close</button></div></form></section></div>}
+    {postponeOpen && <div className="fixed inset-0 z-40 grid place-items-center bg-slateDark/50 p-4"><section aria-labelledby="postpone-heading" aria-modal="true" className={`${panelClass} w-full max-w-xl`} role="dialog"><h2 id="postpone-heading" className="text-xl font-bold">Postpone event</h2><p className="mt-1 text-sm text-slateDark/70">Choose the replacement schedule. Registered participants will be notified.</p>{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}<form className="mt-5 space-y-4" onSubmit={(e) => void submitPostpone(e)}><label className="block space-y-2 text-sm font-semibold" htmlFor="new-start">New start<input id="new-start" type="datetime-local" required className={fieldClass} value={schedule.start} onChange={(e) => setSchedule({ ...schedule, start: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-end">New end<input id="new-end" type="datetime-local" required className={fieldClass} value={schedule.end} onChange={(e) => setSchedule({ ...schedule, end: e.target.value })} /></label><label className="block space-y-2 text-sm font-semibold" htmlFor="new-deadline">New registration deadline<input id="new-deadline" type="datetime-local" required className={fieldClass} value={schedule.deadline} onChange={(e) => setSchedule({ ...schedule, deadline: e.target.value })} /></label><div className="flex gap-3"><button className={primaryButtonClass} disabled={working} type="submit">{working ? 'Postponing…' : 'Confirm postponement'}</button><button className={secondaryButtonClass} disabled={working} onClick={() => setPostponeOpen(false)} type="button">Close</button></div></form></section></div>}
+    {postponeConfirmation && event && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slateDark/60 p-4"><section aria-labelledby="postpone-confirm-title" aria-modal="true" className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" role="dialog"><h2 className="text-xl font-bold" id="postpone-confirm-title">Confirm schedule change</h2><p className="mt-3 text-sm leading-6 text-slateDark/80">This event has {event.registration_count} active {event.registration_count === 1 ? 'registration' : 'registrations'}. The new time may create conflicts for participants. They will be notified if you continue.</p><div className="mt-6 flex justify-end gap-3"><button className={secondaryButtonClass} disabled={working} onClick={() => setPostponeConfirmation(null)} type="button">Cancel</button><button className={primaryButtonClass} disabled={working} onClick={() => void confirmPostponeScheduleChange()} type="button">{working ? 'Postponing…' : 'Continue and notify'}</button></div></section></div>}
   </div>;
 }
 

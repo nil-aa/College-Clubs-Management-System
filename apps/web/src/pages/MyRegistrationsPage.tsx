@@ -39,8 +39,8 @@ export function MyRegistrationsPage() {
 
   const now = Date.now();
   const cancelledEvents = registrations.filter((row) => row.event_status === 'CANCELLED');
-  const upcoming = registrations.filter((row) => row.event_status !== 'CANCELLED' && row.registration_status === 'REGISTERED' && new Date(row.start_time).getTime() > now);
-  const completed = registrations.filter((row) => row.event_status !== 'CANCELLED' && row.registration_status === 'REGISTERED' && new Date(row.start_time).getTime() <= now);
+  const upcoming = registrations.filter((row) => row.event_status !== 'CANCELLED' && row.registration_status === 'REGISTERED' && new Date(row.end_time).getTime() > now);
+  const completed = registrations.filter((row) => row.event_status !== 'CANCELLED' && row.registration_status === 'REGISTERED' && new Date(row.end_time).getTime() <= now);
   const past = registrations.filter((row) => !upcoming.includes(row) && !cancelledEvents.includes(row) && !completed.includes(row));
 
   return (
