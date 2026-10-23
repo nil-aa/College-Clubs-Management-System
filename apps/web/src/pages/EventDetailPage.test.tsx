@@ -62,14 +62,22 @@ describe('EventDetailPage', () => {
   });
 
   it('continues registration after the student confirms an overlap warning', async () => {
-    listMyEventRegistrationsMock.mockResolvedValue([{
-      event_id: 'other-event', title: 'Other Event', registration_status: 'REGISTERED',
-      event_status: 'PUBLISHED', start_time: '2030-02-03T11:00:00Z', end_time: '2030-02-03T13:00:00Z',
-    }]);
+    listMyEventRegistrationsMock.mockResolvedValue([
+      {
+        event_id: 'other-event', title: 'Other Event', registration_status: 'REGISTERED',
+        event_status: 'PUBLISHED', start_time: '2030-02-03T11:00:00Z', end_time: '2030-02-03T13:00:00Z',
+      },
+      {
+        event_id: 'another-event', title: 'Another Event', registration_status: 'REGISTERED',
+        event_status: 'PUBLISHED', start_time: '2030-02-03T09:00:00Z', end_time: '2030-02-03T11:00:00Z',
+      },
+    ]);
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/events/event-other-club']}><Routes><Route path="/events/:eventId" element={<EventDetailPage />} /></Routes></MemoryRouter>);
     await user.click(await screen.findByRole('button', { name: 'Register' }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('2 events'));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Other Event'));
     expect(registerForEventMock).toHaveBeenCalledWith(expect.anything(), 'event-other-club');
     expect(await screen.findByText('You are registered for this event.')).toBeInTheDocument();
     confirm.mockRestore();

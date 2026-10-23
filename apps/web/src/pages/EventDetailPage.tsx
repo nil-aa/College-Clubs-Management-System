@@ -87,9 +87,12 @@ export function EventDetailPage() {
           && new Date(registration.start_time).getTime() < new Date(event.end_time).getTime()
           && new Date(registration.end_time).getTime() > new Date(event.start_time).getTime(),
         );
-        if (overlaps.length && !window.confirm(
-          `You are already registered for “${overlaps[0].title}” at a time that overlaps this event. Continue registering for “${event.title}”?`,
-        )) return;
+        if (overlaps.length) {
+          const overlapMessage = overlaps.length === 1
+            ? `You are already registered for “${overlaps[0].title}” at a time that overlaps this event.`
+            : `You are already registered for ${overlaps.length} events that overlap this event, including “${overlaps[0].title}”.`;
+          if (!window.confirm(`${overlapMessage} Continue registering for “${event.title}”?`)) return;
+        }
         await registerForEvent(supabase, event.event_id);
         setSuccess('You are registered for this event.');
         setRegistrationStatus('REGISTERED');
