@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   cancelEventRegistration,
   getStudentEvent,
+  listMyEventRegistrations,
   registerForEvent,
   type StudentEvent,
 } from '@club-management/shared';
@@ -30,6 +31,7 @@ export function EventDetailPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const registrationInFlight = useRef(false);
   const canRegister = isStudent || managedClubs.length > 0;
   const canManage = event ? managedClubs.some((club) => club.id === event.club_id) : false;
 
@@ -59,7 +61,8 @@ export function EventDetailPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function changeRegistration() {
-    if (!event) return;
+    if (!event || registrationInFlight.current) return;
+    registrationInFlight.current = true;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -70,6 +73,23 @@ export function EventDetailPage() {
         setSuccess('Your registration was cancelled.');
         setRegistrationStatus('CANCELLED');
       } else {
+        const registrations = await listMyEventRegistrations(supabase, { limit: 100, offset: 0 });
+        let allRegistrations = registrations;
+        for (let offset = 100; registrations.length === 100; offset += 100) {
+          const page = await listMyEventRegistrations(supabase, { limit: 100, offset });
+          allRegistrations = allRegistrations.concat(page);
+          if (page.length < 100) break;
+        }
+        const overlaps = allRegistrations.filter((registration) =>
+          registration.registration_status === 'REGISTERED'
+          && ['PUBLISHED', 'POSTPONED'].includes(registration.event_status)
+          && registration.event_id !== event.event_id
+          && new Date(registration.start_time).getTime() < new Date(event.end_time).getTime()
+          && new Date(registration.end_time).getTime() > new Date(event.start_time).getTime(),
+        );
+        if (overlaps.length && !window.confirm(
+          `You are already registered for “${overlaps[0].title}” at a time that overlaps this event. Continue registering for “${event.title}”?`,
+        )) return;
         await registerForEvent(supabase, event.event_id);
         setSuccess('You are registered for this event.');
         setRegistrationStatus('REGISTERED');
@@ -78,6 +98,7 @@ export function EventDetailPage() {
     } catch (changeError) {
       setError(errorMessage(changeError));
     } finally {
+      registrationInFlight.current = false;
       setWorking(false);
     }
   }

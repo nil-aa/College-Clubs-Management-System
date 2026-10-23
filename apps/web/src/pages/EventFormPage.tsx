@@ -46,7 +46,8 @@ export function EventFormPage() {
     if (!Number.isInteger(capacity) || capacity < 1) return setError('Capacity must be a positive whole number.');
     if (![start, end, deadline].every(Number.isFinite)) return setError('Enter valid event dates and times.');
     if (end <= start) return setError('The end time must be later than the start time.');
-    if (deadline > start) return setError('The registration deadline must be no later than the event start.');
+    if (deadline > end) return setError('The registration deadline must be no later than the event end.');
+    if (!editing && end <= Date.now()) return setError('The event end time must be in the future. Choose a later end time.');
     const input: EventInput = { clubId: form.clubId, title: form.title.trim(), description: form.description.trim() || null, venue: form.venue.trim(), category: form.category.trim() || null, startTime: localInputToIso(form.startTime), endTime: localInputToIso(form.endTime), registrationDeadline: localInputToIso(form.registrationDeadline), capacity };
     setSaving(true);
     try {
