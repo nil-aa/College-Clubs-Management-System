@@ -1,6 +1,6 @@
 begin;
 
-select plan(25);
+select plan(27);
 
 reset role;
 insert into public.clubs (id, name, slug, description, is_active, created_by)
@@ -61,6 +61,16 @@ select is(
 );
 select throws_ok(
   $$select public.create_event(
+    '20000000-0000-0000-0000-000000000001', 'Ended event', null, 'Room',
+    null, now() - interval '3 hours', now() - interval '1 hour',
+    now() - interval '4 hours', 10
+  )$$,
+  '22023',
+  'Event end time must be in the future.',
+  'the database rejects creation of an event that has already ended'
+);
+select throws_ok(
+  $$select public.create_event(
     '20000000-0000-0000-0000-000000000001', 'Bad time event', null, 'Room',
     null, now() + interval '3 days', now() + interval '2 days',
     now() + interval '1 day', 10
@@ -68,6 +78,17 @@ select throws_ok(
   '22023',
   'Event end time must be later than start time.',
   'invalid time ordering is rejected by the backend'
+);
+select throws_ok(
+  $$select public.update_event(
+    (select event_id from public.events where title = 'M2 backend test event'),
+    'M2 backend test event', 'Test description', 'Main Hall', 'Technology',
+    now() - interval '3 hours', now() - interval '1 hour',
+    now() - interval '4 hours', 25
+  )$$,
+  '22023',
+  'Event end time must be in the future.',
+  'the database rejects schedule edits that would end in the past'
 );
 select throws_ok(
   $$select public.create_event(
