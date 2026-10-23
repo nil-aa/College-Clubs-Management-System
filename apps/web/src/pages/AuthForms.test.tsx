@@ -9,10 +9,15 @@ import { SignupPage } from './SignupPage';
 const auth = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
+  checkEmailEligibility: vi.fn(),
 }));
 
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => auth,
+}));
+
+vi.mock('../lib/supabase', () => ({
+  supabase: { rpc: auth.checkEmailEligibility },
 }));
 
 function renderPage(page: ReactElement) {
@@ -24,6 +29,7 @@ describe('authentication forms', () => {
     vi.clearAllMocks();
     auth.signIn.mockResolvedValue({ data: { user: null, session: null }, error: null });
     auth.signUp.mockResolvedValue({ data: { user: null, session: null }, error: null });
+    auth.checkEmailEligibility.mockResolvedValue({ data: true, error: null });
   });
 
   it('shows login validation messages before calling Supabase', async () => {
@@ -90,5 +96,20 @@ describe('authentication forms', () => {
 
     expect(auth.signUp).toHaveBeenCalledWith('New Member', 'new@example.test', 'StrongPass1');
     expect(await screen.findByRole('status')).toHaveTextContent('Check your email');
+  });
+
+  it('shows a domain-specific error and does not submit a rejected email', async () => {
+    auth.checkEmailEligibility.mockResolvedValueOnce({ data: false, error: null });
+    const user = userEvent.setup();
+    renderPage(<SignupPage />);
+
+    await user.type(screen.getByLabelText('Full name'), 'New Member');
+    await user.type(screen.getByLabelText('Email'), 'new@gmail.com');
+    await user.type(screen.getByLabelText('Password'), 'StrongPass1');
+    await user.type(screen.getByLabelText('Confirm password'), 'StrongPass1');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('This email domain is not approved for sign-up');
+    expect(auth.signUp).not.toHaveBeenCalled();
   });
 });
