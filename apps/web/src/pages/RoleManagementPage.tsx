@@ -5,6 +5,7 @@ import { usePermission } from '../hooks/usePermission';
 import { supabase } from '../lib/supabase';
 import { RoleAssignmentForm } from '../features/rbac/RoleAssignmentForm';
 import type { ClubOption, Role, UserOption, UserRoleAssignment } from '../features/rbac/types';
+import { SignupDomainSettings } from '../features/rbac/SignupDomainSettings';
 
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -189,6 +190,9 @@ export function RoleManagementPage() {
           <div className="rounded-3xl bg-white p-8 text-slateDark">Loading users and roles…</div>
         ) : (
           <>
+            <section className="rounded-3xl border border-mutedSlate/25 bg-white p-5 shadow-sm sm:p-6">
+              <SignupDomainSettings />
+            </section>
             <section className="rounded-3xl border border-mutedSlate/25 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-wrap gap-3">
                 {roles.map((role) => (

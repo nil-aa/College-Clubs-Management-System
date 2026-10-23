@@ -692,6 +692,10 @@ export type Database = {
         }>;
       };
       get_admin_dashboard_stats: { Args: Record<string, never>; Returns: Json };
+      list_allowed_signup_email_domains: { Args: Record<string, never>; Returns: Array<{ domain: string }> };
+      add_allowed_signup_email_domain: { Args: { p_domain: string }; Returns: string };
+      remove_allowed_signup_email_domain: { Args: { p_domain: string }; Returns: string };
+      check_signup_email_eligibility: { Args: { p_email: string }; Returns: boolean };
     };
     Enums: Record<string, string> & {
       attendance_status: 'PRESENT' | 'ABSENT' | 'EXCUSED';

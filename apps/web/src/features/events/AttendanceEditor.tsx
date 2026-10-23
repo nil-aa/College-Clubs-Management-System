@@ -6,16 +6,11 @@ import { panelClass, primaryButtonClass, secondaryButtonClass } from './eventUti
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status'];
 type EventParticipant = Database['public']['Functions']['list_event_participants']['Returns'][number];
-type SavedAttendance = Pick<
-  Database['public']['Tables']['event_attendance']['Row'],
-  'status' | 'notes'
->;
 type AttendanceDraft = { status: AttendanceStatus | ''; notes: string };
 
 const statusOptions: { value: AttendanceStatus; label: string }[] = [
   { value: 'PRESENT', label: 'Present' },
   { value: 'ABSENT', label: 'Absent' },
-  { value: 'EXCUSED', label: 'Excused' },
 ];
 
 export function AttendanceEditor({
@@ -25,7 +20,6 @@ export function AttendanceEditor({
   eventId: string;
   participants: EventParticipant[];
 }) {
-  const [saved, setSaved] = useState<Record<string, SavedAttendance>>({});
   const [drafts, setDrafts] = useState<Record<string, AttendanceDraft>>({});
   const [finalized, setFinalized] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,14 +45,13 @@ export function AttendanceEditor({
       if (sessionResult.error) throw sessionResult.error;
       if (attendanceResult.error) throw attendanceResult.error;
 
-      const nextSaved = Object.fromEntries(
+      const nextDrafts = Object.fromEntries(
         (attendanceResult.data ?? []).map((record) => [
           record.student_id,
-          { status: record.status, notes: record.notes ?? '' },
+          { status: record.status === 'EXCUSED' ? 'PRESENT' : record.status, notes: record.notes ?? '' },
         ]),
       );
-      setSaved(nextSaved);
-      setDrafts(nextSaved);
+      setDrafts(nextDrafts);
       setFinalized(sessionResult.data?.status === 'FINALIZED');
     } catch (loadError) {
       setError(errorMessage(loadError));
@@ -76,15 +69,14 @@ export function AttendanceEditor({
     [participants],
   );
   const summary = useMemo(() => {
-    const marked = registeredParticipants.map((participant) => saved[participant.student_id]?.status);
+    const marked = registeredParticipants.map((participant) => drafts[participant.student_id]?.status ?? 'PRESENT');
     return {
       registered: registeredParticipants.length,
       present: marked.filter((status) => status === 'PRESENT').length,
       absent: marked.filter((status) => status === 'ABSENT').length,
-      excused: marked.filter((status) => status === 'EXCUSED').length,
       unmarked: marked.filter((status) => !status).length,
     };
-  }, [registeredParticipants, saved]);
+  }, [registeredParticipants, drafts]);
 
   function updateDraft(studentId: string, update: Partial<AttendanceDraft>) {
     setDrafts((current) => ({
@@ -93,36 +85,21 @@ export function AttendanceEditor({
     }));
   }
 
-  async function save(studentId: string) {
-    const draft = drafts[studentId];
-    if (!draft?.status || finalized) return;
-    setWorking(true);
-    setError('');
-    setMessage('');
-    try {
-      const { data, error: saveError } = await supabase.rpc('mark_event_attendance', {
-        p_event_id: eventId,
-        p_student_id: studentId,
-        p_status: draft.status,
-        p_notes: draft.notes || null,
-      });
-      if (saveError) throw saveError;
-      const nextValue = { status: data.status, notes: data.notes ?? '' };
-      setSaved((current) => ({ ...current, [studentId]: nextValue }));
-      setDrafts((current) => ({ ...current, [studentId]: nextValue }));
-      setMessage('Attendance saved.');
-    } catch (saveError) {
-      setError(errorMessage(saveError));
-    } finally {
-      setWorking(false);
-    }
-  }
-
   async function finalize() {
     setWorking(true);
     setError('');
     setMessage('');
     try {
+      for (const participant of registeredParticipants) {
+        const draft = drafts[participant.student_id] ?? { status: 'PRESENT' as AttendanceStatus, notes: '' };
+        const { error: saveError } = await supabase.rpc('mark_event_attendance', {
+          p_event_id: eventId,
+          p_student_id: participant.student_id,
+          p_status: draft.status || 'PRESENT',
+          p_notes: draft.notes || null,
+        });
+        if (saveError) throw saveError;
+      }
       const { error: finalizeError } = await supabase.rpc('finalize_event_attendance', {
         p_event_id: eventId,
       });
@@ -153,7 +130,7 @@ export function AttendanceEditor({
         ) : (
           <button
             className={primaryButtonClass}
-            disabled={working || loading || summary.unmarked > 0}
+            disabled={working || loading}
             onClick={() => void finalize()}
             type="button"
           >
@@ -175,8 +152,6 @@ export function AttendanceEditor({
         <Summary label="Registered" value={summary.registered} />
         <Summary label="Present" value={summary.present} />
         <Summary label="Absent" value={summary.absent} />
-        <Summary label="Excused" value={summary.excused} />
-        <Summary label="Unmarked" value={summary.unmarked} />
       </div>
       {loading ? (
         <p role="status" className="py-8 text-center text-sm text-slateDark/70">
@@ -188,19 +163,18 @@ export function AttendanceEditor({
         </p>
       ) : (
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[780px] text-left text-sm">
             <thead className="bg-lavender text-xs uppercase tracking-wide text-slateDark/70">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Register number</th>
                 <th className="px-4 py-3">Attendance</th>
                 <th className="px-4 py-3">Notes</th>
-                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-mutedSlate/20">
               {registeredParticipants.map((participant) => {
-                const draft = drafts[participant.student_id] ?? { status: '', notes: '' };
+                const draft = drafts[participant.student_id] ?? { status: 'PRESENT', notes: '' };
                 return (
                   <tr key={participant.registration_id}>
                     <td className="px-4 py-3">
@@ -215,7 +189,7 @@ export function AttendanceEditor({
                         aria-label={`Attendance for ${participant.full_name}`}
                         className="rounded-lg border border-mutedSlate/50 bg-white px-3 py-2 disabled:bg-lavender"
                         disabled={finalized || working}
-                        value={draft.status}
+                        value={draft.status || 'PRESENT'}
                         onChange={(event) =>
                           updateDraft(participant.student_id, {
                             status: event.target.value as AttendanceStatus | '',
@@ -240,16 +214,6 @@ export function AttendanceEditor({
                           updateDraft(participant.student_id, { notes: event.target.value })
                         }
                       />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        className={secondaryButtonClass}
-                        disabled={finalized || working || !draft.status}
-                        onClick={() => void save(participant.student_id)}
-                        type="button"
-                      >
-                        Save
-                      </button>
                     </td>
                   </tr>
                 );

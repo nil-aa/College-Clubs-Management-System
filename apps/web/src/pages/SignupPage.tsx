@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FormField } from '../components/FormField';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import {
   authErrorMessage,
   issuesToFieldErrors,
@@ -36,20 +37,35 @@ export function SignupPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const { data, error } = await signUp(
-      parsed.data.fullName,
-      parsed.data.email,
-      parsed.data.password,
-    );
-    setSubmitting(false);
-    if (error) {
-      setFormError(authErrorMessage(error.message));
-      return;
-    }
-    if (data.session) {
-      navigate('/', { replace: true });
-    } else {
-      setSuccess('Account created. Check your email to confirm your account before logging in.');
+    try {
+      const { data: eligible, error: eligibilityError } = await supabase.rpc(
+        'check_signup_email_eligibility',
+        { p_email: parsed.data.email },
+      );
+      if (eligibilityError) {
+        setFormError('We could not verify this email domain right now. Please try again in a moment.');
+        return;
+      }
+      if (!eligible) {
+        setFormError('This email domain is not approved for sign-up. Use an approved college email address.');
+        return;
+      }
+      const { data, error } = await signUp(
+        parsed.data.fullName,
+        parsed.data.email,
+        parsed.data.password,
+      );
+      if (error) {
+        setFormError(authErrorMessage(error, 'signup'));
+      } else if (data.session) {
+        navigate('/', { replace: true });
+      } else {
+        setSuccess('Account created. Check your email to confirm your account before logging in.');
+      }
+    } catch (error) {
+      setFormError(authErrorMessage(error, 'signup'));
+    } finally {
+      setSubmitting(false);
     }
   }
 
