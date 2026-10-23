@@ -37,15 +37,20 @@ export function ResetPasswordPage() {
     }
     setErrors({});
     setSubmitting(true);
-    const { error } = await updatePassword(parsed.data.password);
-    setSubmitting(false);
-    if (error) {
-      setFormError(authErrorMessage(error.message));
-      return;
+    try {
+      const { error } = await updatePassword(parsed.data.password);
+      if (error) {
+        setFormError(authErrorMessage(error));
+        return;
+      }
+      setSuccess('Your password has been updated. You can continue to the dashboard.');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      setFormError(authErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
-    setSuccess('Your password has been updated. You can continue to the dashboard.');
-    setPassword('');
-    setConfirmPassword('');
   }
 
   if (loading)

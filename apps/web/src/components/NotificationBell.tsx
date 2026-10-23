@@ -72,7 +72,9 @@ export function NotificationBell() {
                   compact
                   key={notification.id}
                   notification={notification}
-                  onRead={() => void markAsRead(notification.id, notification.is_read)}
+                  onRead={() =>
+                    void markAsRead(notification.id, notification.is_read).catch(() => undefined)
+                  }
                 />
               ))}
             </div>

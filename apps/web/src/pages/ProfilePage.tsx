@@ -3,6 +3,7 @@ import { FormField } from '../components/FormField';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { issuesToFieldErrors, profileSchema, type FieldErrors } from '../lib/validation';
+import { errorMessage } from '../features/clubs/types';
 
 const inputClass =
   'w-full rounded-xl border border-mutedSlate/50 bg-white px-4 py-3 text-slateDark shadow-sm outline-none transition placeholder:text-slateDark/45 focus:border-aqua focus:ring-4 focus:ring-aqua/35';
@@ -55,29 +56,42 @@ export function ProfilePage() {
       return;
     }
     setErrors({});
-    setSubmitting(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: parsed.data.fullName,
-        department: parsed.data.department || null,
-        roll_number: parsed.data.rollNumber || null,
-        year_of_study: parsed.data.yearOfStudy ? Number(parsed.data.yearOfStudy) : null,
-        phone: parsed.data.phone || null,
-      })
-      .eq('id', user.id);
-    setSubmitting(false);
-    if (error) {
-      setFormError(error.message || 'We could not update your profile.');
-      return;
-    }
+    let saved = false;
     try {
+      setSubmitting(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: parsed.data.fullName,
+          department: parsed.data.department || null,
+          roll_number: parsed.data.rollNumber || null,
+          year_of_study: parsed.data.yearOfStudy ? Number(parsed.data.yearOfStudy) : null,
+          phone: parsed.data.phone || null,
+        })
+        .eq('id', user.id)
+        .select('id')
+        .maybeSingle();
+      if (error) {
+        setFormError(errorMessage(error));
+        return;
+      }
+      if (!data) {
+        setFormError(
+          'Your profile was not updated. Your session may have expired or access may have changed.',
+        );
+        return;
+      }
+      saved = true;
       await refreshProfile();
       setSuccess('Profile updated successfully.');
-    } catch {
+    } catch (failure) {
       setFormError(
-        'Your profile was saved, but it could not be reloaded. Refresh the page to see it.',
+        saved
+          ? 'Your profile was saved, but it could not be reloaded. Refresh the page to see the latest details.'
+          : `The profile update could not be confirmed. ${errorMessage(failure)}`,
       );
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -103,7 +117,7 @@ export function ProfilePage() {
           className="mb-5 rounded-xl border border-rose-200 bg-pink px-4 py-3 text-sm font-medium text-rose-900"
           role="alert"
         >
-          {profileError.message}
+          We could not load your profile. Refresh the page or try again later.
         </div>
       )}
       {formError && (
