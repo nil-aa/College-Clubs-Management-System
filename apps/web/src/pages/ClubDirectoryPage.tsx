@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useRole } from '../hooks/usePermission';
-import { supabase } from '../lib/supabase';
-import { errorMessage, inputClass, type Club } from '../features/clubs/types';
+import { apiErrorMessage } from '../features/api/client';
+import { getActiveClubs } from '../features/api/clubs';
+import { inputClass, type Club } from '../features/clubs/types';
 
 export function ClubDirectoryPage() {
-  const { user } = useAuth();
-  const { allowed: isClubHead } = useRole('club_head');
   const [clubs, setClubs] = useState<Club[]>([]);
-  const [myClubIds, setMyClubIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -17,27 +13,15 @@ export function ClubDirectoryPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const clubResult = await supabase.from('clubs').select('*').order('name');
-    if (clubResult.error) setError(errorMessage(clubResult.error));
-    else setClubs((clubResult.data ?? []) as Club[]);
-    if (user && isClubHead) {
-      const roleResult = await supabase.from('roles').select('id').eq('code', 'club_head').single();
-      if (!roleResult.error) {
-        const assignments = await supabase
-          .from('user_roles')
-          .select('club_id')
-          .eq('user_id', user.id)
-          .eq('role_id', roleResult.data.id)
-          .eq('status', 'active');
-        setMyClubIds(
-          (assignments.data ?? [])
-            .map((row) => row.club_id)
-            .filter((id): id is string => Boolean(id)),
-        );
-      }
+    setError('');
+    try {
+      setClubs(await getActiveClubs());
+    } catch (loadError) {
+      setError(apiErrorMessage(loadError));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [isClubHead, user]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -66,11 +50,6 @@ export function ClubDirectoryPage() {
       }),
     [category, clubs, search],
   );
-  const mine = useMemo(
-    () => clubs.filter((club) => myClubIds.includes(club.id)),
-    [clubs, myClubIds],
-  );
-
   return (
     <div className="space-y-8">
       <div>
@@ -80,25 +59,6 @@ export function ClubDirectoryPage() {
           Discover active clubs and learn how to connect with them.
         </p>
       </div>
-      {isClubHead && (
-        <section>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold">My Clubs</h2>
-            <p className="text-sm text-slateDark/70">Clubs you manage, including inactive clubs.</p>
-          </div>
-          {mine.length === 0 ? (
-            <p className="rounded-2xl bg-white p-5 text-sm text-slateDark/70">
-              You have no club assignments yet.
-            </p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {mine.map((club) => (
-                <ClubCard club={club} key={club.id} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
       <section className="space-y-5">
         <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
           <label className="sr-only" htmlFor="directory-search">

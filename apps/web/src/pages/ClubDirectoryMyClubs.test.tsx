@@ -3,10 +3,11 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClubDirectoryPage } from './ClubDirectoryPage';
 
-const fromMock = vi.hoisted(() => vi.fn());
-vi.mock('../lib/supabase', () => ({ supabase: { from: fromMock } }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
-vi.mock('../hooks/usePermission', () => ({ useRole: () => ({ allowed: true, loading: false }) }));
+const getMock = vi.hoisted(() => vi.fn());
+vi.mock('../features/api/client', () => ({
+  apiErrorMessage: () => 'API error',
+}));
+vi.mock('../features/api/clubs', () => ({ getActiveClubs: getMock }));
 
 const clubs = [
   {
@@ -40,32 +41,17 @@ const clubs = [
 describe('ClubDirectoryPage My Clubs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fromMock.mockImplementation((table: string) => {
-      if (table === 'clubs')
-        return { select: () => ({ order: async () => ({ data: clubs, error: null }) }) };
-      if (table === 'roles')
-        return {
-          select: () => ({
-            eq: () => ({ single: async () => ({ data: { id: 'role-head' }, error: null }) }),
-          }),
-        };
-      return {
-        select: () => ({
-          eq: () => ({
-            eq: () => ({ eq: async () => ({ data: [{ club_id: 'club-1' }], error: null }) }),
-          }),
-        }),
-      };
-    });
+    getMock.mockResolvedValue(clubs.filter((club) => club.is_active));
   });
 
-  it('shows assigned inactive clubs in My Clubs', async () => {
+  it('renders a single active directory without a My Clubs section', async () => {
     render(
       <MemoryRouter>
         <ClubDirectoryPage />
       </MemoryRouter>,
     );
-    expect(await screen.findByText('My Inactive Club')).toBeInTheDocument();
-    expect(screen.getByText('My Clubs')).toBeInTheDocument();
+    expect(await screen.findByText('Other Club')).toBeInTheDocument();
+    expect(screen.queryByText('My Inactive Club')).not.toBeInTheDocument();
+    expect(screen.queryByText('My Clubs')).not.toBeInTheDocument();
   });
 });

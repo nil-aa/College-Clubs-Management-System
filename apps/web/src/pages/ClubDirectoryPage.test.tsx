@@ -4,11 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClubDirectoryPage } from './ClubDirectoryPage';
 
-const fromMock = vi.hoisted(() => vi.fn());
+const getMock = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/supabase', () => ({ supabase: { from: fromMock } }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
-vi.mock('../hooks/usePermission', () => ({ useRole: () => ({ allowed: false, loading: false }) }));
+vi.mock('../features/api/client', () => ({
+  apiErrorMessage: () => 'API error',
+}));
+vi.mock('../features/api/clubs', () => ({ getActiveClubs: getMock }));
 
 const clubs = [
   {
@@ -42,9 +43,7 @@ const clubs = [
 describe('ClubDirectoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    fromMock.mockReturnValue({
-      select: () => ({ order: async () => ({ data: clubs, error: null }) }),
-    });
+    getMock.mockResolvedValue(clubs);
   });
 
   it('filters the directory by search and category', async () => {

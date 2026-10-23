@@ -1,4 +1,16 @@
 export type { Database, Json, NotificationType } from './database.types';
+export type {
+  ApiProfile,
+  ApiPermissionSnapshot,
+  ApiClub,
+  ApiClubHead,
+  ApiClubWithHeads,
+  ApiNotification,
+  ApiAuditLog,
+  ApiAdminDashboardStats,
+  ApiRole,
+  ApiRoleAssignment,
+} from './api';
 export {
   createEvent,
   listManagedEvents,
