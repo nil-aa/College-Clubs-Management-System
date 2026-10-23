@@ -161,8 +161,9 @@ export async function updateEvent(
   client: AppSupabaseClient,
   eventId: string,
   input: Omit<EventInput, 'clubId'>,
+  confirmRegisteredScheduleChange = false,
 ) {
-  const { data, error } = await client.rpc('update_event', {
+  const { data, error } = await client.rpc('update_event_with_confirmation', {
     p_event_id: eventId,
     p_title: input.title,
     p_description: input.description ?? null,
@@ -172,6 +173,7 @@ export async function updateEvent(
     p_end_time: input.endTime,
     p_registration_deadline: input.registrationDeadline,
     p_capacity: input.capacity,
+    p_confirm_registered_schedule_change: confirmRegisteredScheduleChange,
   });
   if (error) throw error;
   return data;
@@ -187,12 +189,14 @@ export async function postponeEvent(
   client: AppSupabaseClient,
   eventId: string,
   schedule?: { startTime: string; endTime: string; registrationDeadline: string },
+  confirmRegisteredScheduleChange = false,
 ) {
-  const { data, error } = await client.rpc('postpone_event', {
+  const { data, error } = await client.rpc('postpone_event_with_confirmation', {
     p_event_id: eventId,
     p_start_time: schedule?.startTime ?? null,
     p_end_time: schedule?.endTime ?? null,
     p_registration_deadline: schedule?.registrationDeadline ?? null,
+    p_confirm_registered_schedule_change: confirmRegisteredScheduleChange,
   });
   if (error) throw error;
   return data;

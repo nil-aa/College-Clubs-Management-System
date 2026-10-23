@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(33);
 
 reset role;
 insert into public.clubs (id, name, slug, description, is_active, created_by)
@@ -13,6 +13,18 @@ values (
   '10000000-0000-0000-0000-000000000001'
 )
 on conflict (id) do nothing;
+
+insert into public.events (
+  event_id, club_id, created_by, title, venue, start_time, end_time,
+  registration_deadline, capacity, status
+) values (
+  '51000000-0000-0000-0000-000000000099',
+  '20000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000001',
+  'Expired draft publication fixture', 'Main Hall',
+  now() + interval '3 days', now() + interval '3 days 2 hours',
+  now() + interval '2 days', 10, 'DRAFT'
+);
 
 insert into public.user_roles (user_id, role_id, club_id, assigned_by, status)
 select
@@ -176,15 +188,55 @@ select ok(
    where event_id = current_setting('test.event_id')::uuid),
   'first publication records published_at'
 );
+select lives_ok(
+  $$select * from public.register_for_event(current_setting('test.event_id')::uuid)$$,
+  'a club head with registration permission can register for the event'
+);
+select throws_ok(
+  $$select public.update_event_with_confirmation(
+    current_setting('test.event_id')::uuid, 'M2 backend test event', 'Test description',
+    'Main Hall', 'Technology', now() + interval '4 days', now() + interval '4 days 2 hours',
+    now() + interval '3 days', 25, false
+  )$$,
+  '55000',
+  'This event has registered participants. Confirm the schedule change so they can be notified.',
+  'the trusted update RPC requires acknowledgement before changing a registered event schedule'
+);
+select lives_ok(
+  $$select public.update_event_with_confirmation(
+    current_setting('test.event_id')::uuid, 'M2 backend test event', 'Test description',
+    'Main Hall', 'Technology', now() + interval '4 days', now() + interval '4 days 2 hours',
+    now() + interval '3 days', 25, true
+  )$$,
+  'a confirmed schedule edit succeeds for a registered event'
+);
+select ok(
+  exists (select 1 from public.notifications
+    where related_event_id = current_setting('test.event_id')::uuid
+      and type = 'event_schedule_updated'),
+  'registered participants receive a schedule change notification'
+);
 select throws_ok(
   $$select public.publish_event(current_setting('test.event_id')::uuid)$$,
   '22023',
   'Only draft or postponed events can be published.',
   'already published events cannot be published twice'
 );
+select throws_ok(
+  $$select public.postpone_event(
+    current_setting('test.event_id')::uuid,
+    now() + interval '5 days', now() + interval '5 days 2 hours', now() + interval '4 days'
+  )$$,
+  '55000',
+  'This event has registered participants. Confirm the schedule change so they can be notified.',
+  'the original postpone RPC cannot bypass schedule acknowledgement'
+);
 select lives_ok(
-  $$select public.postpone_event(current_setting('test.event_id')::uuid)$$,
-  'a club head can postpone a published event'
+  $$select public.postpone_event_with_confirmation(
+    current_setting('test.event_id')::uuid,
+    now() + interval '5 days', now() + interval '5 days 2 hours', now() + interval '4 days', true
+  )$$,
+  'a confirmed postponement succeeds and notifies participants'
 );
 select is(
   (select status from public.events where event_id = current_setting('test.event_id')::uuid),
@@ -218,6 +270,22 @@ select ok(
       and details ->> 'event_id' = current_setting('test.event_id')
   ),
   'event lifecycle changes are sent to the shared audit helper'
+);
+
+reset role;
+alter table public.events disable trigger events_reject_ended_schedule_change;
+update public.events
+set start_time = now() - interval '3 hours',
+    end_time = now() - interval '1 hour',
+    registration_deadline = now() - interval '4 hours'
+where event_id = '51000000-0000-0000-0000-000000000099';
+alter table public.events enable trigger events_reject_ended_schedule_change;
+select tests.authenticate_as('president@example.test');
+select throws_ok(
+  $$select public.publish_event('51000000-0000-0000-0000-000000000099')$$,
+  '22023',
+  'This event has already ended. Edit the schedule before publishing it.',
+  'a draft that ended after creation cannot be published'
 );
 
 reset role;
