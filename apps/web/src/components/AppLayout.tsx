@@ -54,6 +54,7 @@ export function AppLayout() {
   const { allowed: isGlobalAdmin } = useRole('global_admin');
   const { allowed: isClubHead } = useRole('club_head');
   const { allowed: isStudent } = useRole('student');
+  const { allowed: isFacultyCoordinator } = useRole('faculty_coordinator');
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
@@ -117,20 +118,34 @@ export function AppLayout() {
           <NavItem label="Participation History" to="/participation-history" />
           {managedEventClubs.length > 0 && <NavItem label="Manage Events" to="/manage-events" />}
           {managedEventClubs.length > 0 && <NavItem label="OD Sheets" to="/od-sheets" />}
+          {isFacultyCoordinator && <NavItem label="OD Review" to="/faculty/od-reviews" />}
           {managedEventClubs.length > 0 ? (
             <NavItem label="Attendance Reports" to="/attendance-reports" />
           ) : (
             <PermissionNavItem
-              item={{ label: 'Attendance Reports', to: '/attendance-reports', permission: 'events.manage', clubId: null }}
+              item={{
+                label: 'Attendance Reports',
+                to: '/attendance-reports',
+                permission: 'events.manage',
+                clubId: null,
+              }}
             />
           )}
-          {!isGlobalAdmin && !isClubHead && !isStudent && <NavItem label="Dashboard" to="/dashboard" />}
+          {!isGlobalAdmin && !isClubHead && !isStudent && (
+            <NavItem label="Dashboard" to="/dashboard" />
+          )}
           <p className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slateDark/65">
             Identity & clubs
           </p>
-          {ownNav.filter((item) => !isGlobalAdmin || !['/memberships', '/recruitment', '/committees', '/volunteers'].includes(item.to)).map((item) => (
-            <PermissionNavItem item={item} key={item.to} />
-          ))}
+          {ownNav
+            .filter(
+              (item) =>
+                !isGlobalAdmin ||
+                !['/memberships', '/recruitment', '/committees', '/volunteers'].includes(item.to),
+            )
+            .map((item) => (
+              <PermissionNavItem item={item} key={item.to} />
+            ))}
         </aside>
         <main className="min-w-0 flex-1">
           <Outlet />

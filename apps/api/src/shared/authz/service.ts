@@ -33,6 +33,11 @@ export class AuthorizationService {
         );
       if (normalized === 'club_head')
         return candidate.code === 'club_head' && Boolean(clubId) && candidate.clubId === clubId;
+      if (normalized === 'faculty_coordinator')
+        return (
+          candidate.code === 'faculty_coordinator' &&
+          (clubId ? candidate.clubId === clubId : candidate.clubId !== null)
+        );
       return candidate.code === normalized && candidate.clubId === null;
     });
   }

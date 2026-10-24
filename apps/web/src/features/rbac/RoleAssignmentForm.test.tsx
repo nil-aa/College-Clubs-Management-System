@@ -44,6 +44,10 @@ const baseProps = () => ({
   onRoleChange: vi.fn().mockResolvedValue(undefined),
   onAssignClubHead: vi.fn().mockResolvedValue(undefined),
   onRevokeClubHead: vi.fn().mockResolvedValue(undefined),
+  onAssignFacultyCoordinator: vi.fn().mockResolvedValue(undefined),
+  onRevokeFacultyCoordinator: vi.fn().mockResolvedValue(undefined),
+  clubHeadRoleId: 'role-head',
+  facultyCoordinatorRoleId: 'role-faculty',
   submitting: false,
   error: '',
 });
@@ -86,6 +90,17 @@ describe('RoleAssignmentForm', () => {
 
     expect(window.confirm).toHaveBeenCalled();
     expect(props.onRevokeClubHead).toHaveBeenCalledWith('club-1');
+  });
+
+  it('assigns a Faculty Coordinator to a selected club', async () => {
+    const user = userEvent.setup();
+    const props = baseProps();
+    render(<RoleAssignmentForm {...props} />);
+
+    await user.selectOptions(screen.getByLabelText('Faculty club'), 'club-1');
+    await user.click(screen.getByRole('button', { name: 'Assign Faculty Coordinator' }));
+
+    expect(props.onAssignFacultyCoordinator).toHaveBeenCalledWith('club-1');
   });
 
   it('shows an assignment error', () => {

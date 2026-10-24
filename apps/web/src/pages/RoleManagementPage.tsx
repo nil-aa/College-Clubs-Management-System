@@ -7,6 +7,7 @@ import { RoleAssignmentForm } from '../features/rbac/RoleAssignmentForm';
 import type { ClubOption, Role, UserOption, UserRoleAssignment } from '../features/rbac/types';
 import { SignupDomainSettings } from '../features/rbac/SignupDomainSettings';
 import { errorMessage } from '../features/clubs/types';
+import { assignFacultyCoordinator, revokeFacultyCoordinator } from '../features/api/roles';
 
 export function RoleManagementPage() {
   const { allowed, loading: permissionLoading } = usePermission('users.manage');
@@ -28,7 +29,7 @@ export function RoleManagementPage() {
       supabase
         .from('roles')
         .select('*')
-        .in('code', ['student', 'club_head', 'admin'])
+        .in('code', ['student', 'club_head', 'admin', 'faculty_coordinator'])
         .order('name'),
       supabase.from('clubs').select('id, name, status, is_active').order('name'),
       supabase.from('user_roles').select('*'),
@@ -57,6 +58,8 @@ export function RoleManagementPage() {
     (assignment) => assignment.status === 'active' && assignment.club_id === null,
   );
   const currentRole = roles.find((role) => role.id === activeRole?.role_id)?.code ?? 'student';
+  const clubHeadRoleId = roles.find((role) => role.code === 'club_head')?.id;
+  const facultyCoordinatorRoleId = roles.find((role) => role.code === 'faculty_coordinator')?.id;
 
   const roleCounts = useMemo(() => {
     const counts = new Map<string, Set<string>>();
@@ -140,6 +143,40 @@ export function RoleManagementPage() {
     }
   }
 
+  async function handleAssignFacultyCoordinator(clubId: string) {
+    if (!selectedUserId) return;
+    setSubmitting(true);
+    setError('');
+    setSuccess('');
+    try {
+      await assignFacultyCoordinator(selectedUserId, clubId);
+      setSuccess('Faculty Coordinator assignment saved.');
+      await loadData();
+    } catch (assignmentError) {
+      setError(
+        assignmentError instanceof Error ? assignmentError.message : errorMessage(assignmentError),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRevokeFacultyCoordinator(clubId: string) {
+    if (!selectedUserId) return;
+    setSubmitting(true);
+    setError('');
+    setSuccess('');
+    try {
+      await revokeFacultyCoordinator(selectedUserId, clubId);
+      setSuccess('Faculty Coordinator assignment revoked.');
+      await loadData();
+    } catch (revokeError) {
+      setError(revokeError instanceof Error ? revokeError.message : errorMessage(revokeError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (permissionLoading) {
     return <div className="rounded-3xl bg-white p-8 text-slateDark">Checking permissions…</div>;
   }
@@ -162,7 +199,7 @@ export function RoleManagementPage() {
           <p className="text-sm font-semibold text-slateDark/70">Administration</p>
           <h1 className="mt-1 text-3xl font-bold text-slateDark">Users & Roles</h1>
           <p className="mt-2 max-w-3xl text-sm text-slateDark/75">
-            Assign the three system roles and manage club-scoped Club Head access.
+            Assign global roles and manage club-scoped Club Head and Faculty Coordinator access.
           </p>
         </div>
         {error && (
@@ -257,12 +294,18 @@ export function RoleManagementPage() {
               <RoleAssignmentForm
                 assignments={selectedAssignments}
                 clubs={clubs}
+                clubHeadRoleId={clubHeadRoleId}
                 currentRole={currentRole}
                 error={error}
                 onAssignClubHead={handleAssignClubHead}
+                onAssignFacultyCoordinator={handleAssignFacultyCoordinator}
                 onRevokeClubHead={handleRevokeClubHead}
+                onRevokeFacultyCoordinator={handleRevokeFacultyCoordinator}
                 onRoleChange={handleRoleChange}
-                roles={roles}
+                roles={roles.filter((role) =>
+                  ['student', 'club_head', 'admin'].includes(role.code),
+                )}
+                facultyCoordinatorRoleId={facultyCoordinatorRoleId}
                 submitting={submitting}
                 userId={selectedUser.id}
                 userName={selectedUser.full_name}

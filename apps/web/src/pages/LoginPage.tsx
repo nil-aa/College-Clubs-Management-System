@@ -109,6 +109,15 @@ export function LoginPage() {
           Create an account
         </Link>
       </p>
+      <p className="mt-4 text-center text-sm text-slateDark/75">
+        Faculty Coordinator?{' '}
+        <Link
+          className="font-bold text-slateDark underline decoration-lilac decoration-2 underline-offset-4"
+          to="/faculty/login"
+        >
+          Faculty login
+        </Link>
+      </p>
     </section>
   );
 }

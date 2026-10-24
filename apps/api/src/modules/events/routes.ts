@@ -34,6 +34,15 @@ export function eventsRoutes(
       next(error);
     }
   };
+  const facultyReviewer = async (request: ApiRequest, _response: any, next: any) => {
+    try {
+      if (!(await authz.hasRole(request.auth!.userId, 'faculty_coordinator', undefined, request)))
+        throw forbidden();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
   const service = new EventService(repository, authz);
   const user = (r: any) => (r as ApiRequest).auth!.userId;
   const id = (r: any) => {
@@ -234,6 +243,39 @@ export function eventsRoutes(
     wrap(async (req: any, res: any) => {
       const parsed = sheetIdSchema.parse(req.params);
       res.json(await service.odSheetDetail(user(req), parsed.sheetId));
+    }),
+  );
+  router.post(
+    '/admin/od-sheets/:sheetId/close',
+    auth,
+    manager,
+    wrap(async (req: any, res: any) => {
+      const parsed = sheetIdSchema.parse(req.params);
+      res.json(await service.closeOdSheet(user(req), parsed.sheetId));
+    }),
+  );
+  router.get(
+    '/faculty/od-sheets',
+    auth,
+    facultyReviewer,
+    wrap(async (req: any, res: any) => res.json(await service.facultyOdSheets(user(req)))),
+  );
+  router.get(
+    '/faculty/od-sheets/:sheetId',
+    auth,
+    facultyReviewer,
+    wrap(async (req: any, res: any) => {
+      const parsed = sheetIdSchema.parse(req.params);
+      res.json(await service.facultyOdSheetDetail(user(req), parsed.sheetId));
+    }),
+  );
+  router.post(
+    '/faculty/od-sheets/:sheetId/approve',
+    auth,
+    facultyReviewer,
+    wrap(async (req: any, res: any) => {
+      const parsed = sheetIdSchema.parse(req.params);
+      res.json(await service.approveOdSheet(user(req), parsed.sheetId));
     }),
   );
   return router;

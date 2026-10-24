@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import type { M1Repository } from '../../shared/db/repository.js';
+import type { FacultyAssignmentRepository, M1Repository } from '../../shared/db/repository.js';
 import { authenticate, type TokenVerifier } from '../../shared/auth/middleware.js';
 import { AuthorizationService, requirePermission } from '../../shared/authz/service.js';
 import { RoleManagementService } from './service.js';
 import { rolesController } from './controller.js';
 
 export function rolesRoutes(
-  repository: M1Repository,
+  repository: M1Repository & FacultyAssignmentRepository,
   authz: AuthorizationService,
   verifier: TokenVerifier,
 ) {
@@ -17,5 +17,17 @@ export function rolesRoutes(
   router.get('/admin/roles', auth, admin, controller.roles);
   router.get('/admin/role-assignments', auth, admin, controller.assignments);
   router.post('/admin/users/:userId/role', auth, admin, controller.setRole);
+  router.post(
+    '/admin/users/:userId/faculty-assignments',
+    auth,
+    admin,
+    controller.assignFacultyCoordinator,
+  );
+  router.delete(
+    '/admin/users/:userId/faculty-assignments/:clubId',
+    auth,
+    admin,
+    controller.revokeFacultyCoordinator,
+  );
   return router;
 }

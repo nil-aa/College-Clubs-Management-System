@@ -173,6 +173,22 @@ export type EventRepository = {
   listFinalizedAttendanceSessions(userId: string, admin: boolean): Promise<any[]>;
   listOdSheets(userId: string, admin: boolean): Promise<any[]>;
   getOdSheet(id: string): Promise<{ sheet: any | null; students: any[] }>;
+  listFacultyOdSheets(userId: string): Promise<any[]>;
+  closeOdSheet(actorId: string, id: string): Promise<any>;
+  approveOdSheet(actorId: string, id: string): Promise<any>;
+};
+
+export type FacultyAssignmentRepository = {
+  assignFacultyCoordinator(
+    userId: string,
+    clubId: string,
+    actorId: string,
+  ): Promise<{ id: string }>;
+  revokeFacultyCoordinator(
+    userId: string,
+    clubId: string,
+    actorId: string,
+  ): Promise<{ id: string } | null>;
 };
 
 export type ProjectRepository = M1Repository & EventRepository;
@@ -923,6 +939,67 @@ export class PrismaM1Repository implements M1Repository {
     return { id: saved.id };
   }
 
+  async assignFacultyCoordinator(userId: string, clubId: string, actorId: string) {
+    const [role, user, club] = await Promise.all([
+      this.db.role.findUnique({ where: { code: 'faculty_coordinator' } }),
+      this.db.profile.findUnique({ where: { id: userId }, select: { id: true, isActive: true } }),
+      this.db.club.findUnique({ where: { id: clubId }, select: { id: true, isActive: true } }),
+    ]);
+    if (!role) throw new Error('Faculty Coordinator role is not configured.');
+    if (!user?.isActive) throw new Error('Active user not found.');
+    if (!club?.isActive) throw new Error('Active club not found.');
+    const existing = await this.db.userRole.findFirst({
+      where: { userId, roleId: role.id, clubId },
+      select: { id: true, status: true, isActive: true },
+    });
+    if (existing?.status === 'active' && existing.isActive)
+      throw new Error('User is already a Faculty Coordinator for this club.');
+    if (existing) {
+      const restored = await this.db.userRole.update({
+        where: { id: existing.id },
+        data: {
+          status: 'active',
+          isActive: true,
+          assignedBy: actorId,
+          deactivatedAt: null,
+          deactivatedBy: null,
+        },
+      });
+      return { id: restored.id };
+    }
+    const created = await this.db.userRole.create({
+      data: {
+        userId,
+        roleId: role.id,
+        clubId,
+        assignedBy: actorId,
+        status: 'active',
+        isActive: true,
+      },
+    });
+    return { id: created.id };
+  }
+
+  async revokeFacultyCoordinator(userId: string, clubId: string, actorId: string) {
+    const role = await this.db.role.findUnique({ where: { code: 'faculty_coordinator' } });
+    if (!role) throw new Error('Faculty Coordinator role is not configured.');
+    const existing = await this.db.userRole.findFirst({
+      where: { userId, roleId: role.id, clubId, status: 'active', isActive: true },
+      select: { id: true },
+    });
+    if (!existing) return null;
+    const revoked = await this.db.userRole.update({
+      where: { id: existing.id },
+      data: {
+        status: 'inactive',
+        isActive: false,
+        deactivatedAt: new Date(),
+        deactivatedBy: actorId,
+      },
+    });
+    return { id: revoked.id };
+  }
+
   async listStudentEvents(input: {
     search?: string;
     clubId?: string;
@@ -1469,6 +1546,47 @@ export class PrismaM1Repository implements M1Repository {
       admin,
       userId,
     );
+  }
+  async listFacultyOdSheets(userId: string) {
+    return this.db.$queryRawUnsafe(
+      `select s.*, e.title as event_title, c.name as club_name
+       from public.od_sheets s
+       join public.events e on e.event_id=s.event_id
+       join public.clubs c on c.id=s.club_id
+       where s.status in ('CLOSED','APPROVED')
+         and exists (
+           select 1 from public.user_roles ur
+           join public.roles r on r.id=ur.role_id
+           where ur.user_id=$1::uuid and ur.club_id=s.club_id
+             and ur.status='active' and ur.is_active and r.code='faculty_coordinator'
+         )
+       order by s.closed_at desc nulls last, s.created_at desc`,
+      userId,
+    );
+  }
+  async closeOdSheet(actorId: string, id: string) {
+    const rows = await this.db.$queryRawUnsafe(
+      `update public.od_sheets
+       set status='CLOSED', closed_by=$1::uuid, closed_at=now()
+       where id=$2::uuid and status='OPEN'
+       returning *`,
+      actorId,
+      id,
+    );
+    if (!rows[0]) throw new Error('Only an open participation list can be closed.');
+    return rows[0];
+  }
+  async approveOdSheet(actorId: string, id: string) {
+    const rows = await this.db.$queryRawUnsafe(
+      `update public.od_sheets
+       set status='APPROVED', approved_by=$1::uuid, approved_at=now()
+       where id=$2::uuid and status='CLOSED'
+       returning *`,
+      actorId,
+      id,
+    );
+    if (!rows[0]) throw new Error('Only a closed participation list can be approved.');
+    return rows[0];
   }
   async getOdSheet(id: string) {
     const [sheet, students] = await Promise.all([
