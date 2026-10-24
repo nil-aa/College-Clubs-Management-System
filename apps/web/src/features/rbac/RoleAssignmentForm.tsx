@@ -144,8 +144,18 @@ export function RoleAssignmentForm({
         </button>
       </form>
       <p className="mt-3 text-xs text-slateDark/70">
-        Club Head only grants club management access after a club assignment is active.
+        Club Head only grants club management access after a club assignment is active. The global
+        Faculty role identifies a faculty account; assign Faculty Coordinator below to grant OD
+        review access for a club.
       </p>
+      {facultyCoordinatorRoleId && (
+        <a
+          className="mt-2 inline-block text-sm font-bold text-slateDark underline decoration-lilac decoration-2 underline-offset-4"
+          href="#faculty-coordinator-assignment"
+        >
+          Assign Faculty Coordinator for a club
+        </a>
+      )}
       <div className="mt-6 border-t border-mutedSlate/20 pt-5">
         <p className="text-sm font-semibold text-slateDark/70">Club Head assignments</p>
         <form
@@ -214,7 +224,7 @@ export function RoleAssignmentForm({
           </ul>
         )}
       </div>
-      <div className="mt-6 border-t border-mutedSlate/20 pt-5">
+      <div className="mt-6 border-t border-mutedSlate/20 pt-5" id="faculty-coordinator-assignment">
         <p className="text-sm font-semibold text-slateDark/70">Faculty Coordinator assignments</p>
         <p className="mt-1 text-xs text-slateDark/65">
           Faculty Coordinators can review and approve OD lists for their assigned clubs.

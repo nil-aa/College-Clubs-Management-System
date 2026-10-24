@@ -15,7 +15,7 @@ packages/shared/              # shared Database type and typed RPC wrappers
 apps/web/                     # React + TypeScript + Vite + Tailwind shell
 ```
 
-The current scope has three roles: `student`, `club_head`, and `admin`. Club-head access is always scoped to an assigned club. The events and attendance modules are deliberately not implemented; their web extension points are `/events` and `/bookings`.
+The Users & Roles global-role selector includes `student`, `faculty`, `club_head`, and `admin`. Club Head management and Faculty Coordinator OD review require their separate club-scoped assignments; assigning the global Faculty role alone does not grant OD approval access. The events and attendance modules are deliberately not implemented; their web extension points are `/events` and `/bookings`.
 
 ## Prerequisites
 
