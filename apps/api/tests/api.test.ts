@@ -144,6 +144,14 @@ describe('API foundation', () => {
     expect(response.status).toBe(400);
   });
 
+  it('accepts Faculty as a global role assignment', async () => {
+    const response = await request(appFor())
+      .post(`/api/admin/users/${student}/role`)
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ role: 'faculty' });
+    expect(response.status).toBe(200);
+  });
+
   it('returns validation errors in the documented shape', async () => {
     const response = await request(appFor())
       .patch('/api/users/me')
