@@ -8,10 +8,14 @@ type RoleAssignmentFormProps = {
   roles: Role[];
   clubs: ClubOption[];
   assignments: UserRoleAssignment[];
+  clubHeadRoleId?: string;
+  facultyCoordinatorRoleId?: string;
   currentRole: string;
   onRoleChange: (role: string) => Promise<void>;
   onAssignClubHead: (clubId: string) => Promise<void>;
   onRevokeClubHead: (clubId: string) => Promise<void>;
+  onAssignFacultyCoordinator: (clubId: string) => Promise<void>;
+  onRevokeFacultyCoordinator: (clubId: string) => Promise<void>;
   submitting: boolean;
   error: string;
 };
@@ -25,15 +29,20 @@ export function RoleAssignmentForm({
   roles,
   clubs,
   assignments,
+  clubHeadRoleId,
+  facultyCoordinatorRoleId,
   currentRole,
   onRoleChange,
   onAssignClubHead,
   onRevokeClubHead,
+  onAssignFacultyCoordinator,
+  onRevokeFacultyCoordinator,
   submitting,
   error,
 }: RoleAssignmentFormProps) {
   const [role, setRole] = useState(currentRole);
   const [clubId, setClubId] = useState('');
+  const [facultyClubId, setFacultyClubId] = useState('');
 
   useEffect(() => {
     setRole(currentRole);
@@ -66,8 +75,28 @@ export function RoleAssignmentForm({
     }
   }
 
+  async function handleFacultySubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!facultyClubId) return;
+    await onAssignFacultyCoordinator(facultyClubId);
+    setFacultyClubId('');
+  }
+
+  async function handleFacultyRevoke(club: ClubOption) {
+    if (window.confirm(`Revoke ${userName}'s Faculty Coordinator assignment for ${club.name}?`)) {
+      await onRevokeFacultyCoordinator(club.id);
+    }
+  }
+
   const activeClubHeadAssignments = assignments.filter(
-    (assignment) => assignment.status === 'active' && assignment.club_id,
+    (assignment) =>
+      assignment.status === 'active' && assignment.club_id && assignment.role_id === clubHeadRoleId,
+  );
+  const activeFacultyAssignments = assignments.filter(
+    (assignment) =>
+      assignment.status === 'active' &&
+      assignment.club_id &&
+      assignment.role_id === facultyCoordinatorRoleId,
   );
 
   return (
@@ -175,6 +204,77 @@ export function RoleAssignmentForm({
                     className="self-start rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-900 transition hover:bg-pink focus:outline-none focus:ring-4 focus:ring-pink sm:self-auto"
                     disabled={submitting}
                     onClick={() => void handleRevoke(club)}
+                    type="button"
+                  >
+                    Revoke
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      <div className="mt-6 border-t border-mutedSlate/20 pt-5">
+        <p className="text-sm font-semibold text-slateDark/70">Faculty Coordinator assignments</p>
+        <p className="mt-1 text-xs text-slateDark/65">
+          Faculty Coordinators can review and approve OD lists for their assigned clubs.
+        </p>
+        <form
+          className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+          onSubmit={handleFacultySubmit}
+        >
+          <div>
+            <label
+              className="mb-2 block text-sm font-semibold text-slateDark"
+              htmlFor="faculty-club"
+            >
+              Faculty club
+            </label>
+            <select
+              className={inputClass}
+              disabled={!facultyCoordinatorRoleId || clubs.length === 0 || submitting}
+              id="faculty-club"
+              onChange={(event) => setFacultyClubId(event.target.value)}
+              value={facultyClubId}
+            >
+              <option value="">Choose a club</option>
+              {clubs.map((club) => (
+                <option key={club.id} value={club.id}>
+                  {club.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="rounded-xl bg-lilac px-4 py-2.5 text-sm font-bold text-slateDark disabled:opacity-60"
+            disabled={!facultyClubId || !facultyCoordinatorRoleId || submitting}
+            type="submit"
+          >
+            Assign Faculty Coordinator
+          </button>
+        </form>
+        {!facultyCoordinatorRoleId && (
+          <p className="mt-3 text-xs text-rose-800">
+            Faculty Coordinator role is missing. Apply the latest database migration.
+          </p>
+        )}
+        {activeFacultyAssignments.length === 0 ? (
+          <p className="mt-4 text-sm text-slateDark/70">No active faculty assignments.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {activeFacultyAssignments.map((assignment) => {
+              const club = clubs.find((item) => item.id === assignment.club_id);
+              if (!club) return null;
+              return (
+                <li
+                  className="flex items-center justify-between gap-3 rounded-xl border border-mutedSlate/25 px-4 py-3"
+                  key={assignment.id}
+                >
+                  <span className="text-sm font-semibold text-slateDark">{club.name}</span>
+                  <button
+                    className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-900 disabled:opacity-60"
+                    disabled={submitting}
+                    onClick={() => void handleFacultyRevoke(club)}
                     type="button"
                   >
                     Revoke

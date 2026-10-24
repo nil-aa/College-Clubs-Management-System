@@ -135,3 +135,19 @@ export function listOdSheets() {
 export function getOdSheet(id: string) {
   return api.get<any>(`/admin/od-sheets/${id}`);
 }
+
+export function closeOdSheet(id: string) {
+  return api.post<any>(`/admin/od-sheets/${id}/close`);
+}
+
+export function listFacultyOdSheets() {
+  return api.get<any[]>('/faculty/od-sheets');
+}
+
+export function getFacultyOdSheet(id: string) {
+  return api.get<any>(`/faculty/od-sheets/${id}`);
+}
+
+export function approveOdSheet(id: string) {
+  return api.post<any>(`/faculty/od-sheets/${id}/approve`);
+}

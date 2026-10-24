@@ -29,6 +29,8 @@ import { MyParticipationPage } from './pages/MyParticipationPage';
 import { OdSheetsPage } from './pages/OdSheetsPage';
 import { AttendanceReportsPage } from './pages/AttendanceReportsPage';
 import { useRole } from './hooks/usePermission';
+import { FacultyLoginPage } from './pages/FacultyLoginPage';
+import { FacultyOdReviewPage } from './pages/FacultyOdReviewPage';
 
 function HomeRoute() {
   const { allowed, loading } = useRole('global_admin');
@@ -49,6 +51,7 @@ export function App() {
             <Route element={<PublicOnlyRoute />}>
               <Route element={<AuthLayout />}>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/faculty/login" element={<FacultyLoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               </Route>
@@ -62,6 +65,7 @@ export function App() {
                 <Route path="my-registrations" element={<MyRegistrationsPage />} />
                 <Route path="participation-history" element={<MyParticipationPage />} />
                 <Route path="od-sheets" element={<OdSheetsPage />} />
+                <Route path="faculty/od-reviews" element={<FacultyOdReviewPage />} />
                 <Route path="attendance-reports" element={<AttendanceReportsPage />} />
                 <Route path="manage-events" element={<ManageEventsPage />} />
                 <Route path="manage-events/new" element={<EventFormPage />} />
