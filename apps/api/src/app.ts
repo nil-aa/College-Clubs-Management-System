@@ -6,7 +6,11 @@ import type { ApiConfig } from './shared/config/index.js';
 import { createLogger, errorHandler, requestContext } from './shared/http/middleware.js';
 import { HttpError } from './shared/errors/http.js';
 import { prisma } from './shared/db/client.js';
-import { PrismaM1Repository, type M1Repository } from './shared/db/repository.js';
+import {
+  PrismaM1Repository,
+  type FacultyAssignmentRepository,
+  type M1Repository,
+} from './shared/db/repository.js';
 import { AuthorizationService } from './shared/authz/service.js';
 import { createTokenVerifier, type TokenVerifier } from './shared/auth/middleware.js';
 import { usersRoutes } from './modules/users/routes.js';
@@ -61,7 +65,10 @@ export function createApp(dependencies: AppDependencies): Express {
   app.use('/api', notificationsRoutes(repository, verifier));
   app.use('/api', auditRoutes(repository, authz, verifier));
   app.use('/api', dashboardRoutes(repository, authz, verifier));
-  app.use('/api', rolesRoutes(repository, authz, verifier));
+  app.use(
+    '/api',
+    rolesRoutes(repository as M1Repository & FacultyAssignmentRepository, authz, verifier),
+  );
   app.use('/api', eventsRoutes(repository as typeof repository & EventRepository, authz, verifier));
   app.use(
     '/api',

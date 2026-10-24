@@ -129,6 +129,21 @@ describe('API foundation', () => {
     expect(response.status).toBe(403);
   });
 
+  it('rejects students from faculty OD review routes', async () => {
+    const response = await request(appFor())
+      .get('/api/faculty/od-sheets')
+      .set('Authorization', `Bearer ${student}`);
+    expect(response.status).toBe(403);
+  });
+
+  it('validates Faculty Coordinator assignment path ids', async () => {
+    const response = await request(appFor())
+      .post('/api/admin/users/not-a-uuid/faculty-assignments')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ club_id: clubA });
+    expect(response.status).toBe(400);
+  });
+
   it('returns validation errors in the documented shape', async () => {
     const response = await request(appFor())
       .patch('/api/users/me')

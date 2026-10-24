@@ -332,6 +332,55 @@ export class EventService {
     if (!(await this.authz.canManageClub(userId, result.sheet.club_id))) throw forbidden();
     return result;
   }
+
+  async closeOdSheet(actorId: string, id: string) {
+    const { sheet } = await this.odSheetDetail(actorId, id);
+    if (sheet.status !== 'OPEN') throw conflict('Only an open participation list can be closed.');
+    return this.repository.transaction(async (tx) => {
+      const result = await (tx as M1Repository & EventRepository).closeOdSheet(actorId, id);
+      await new AuditService(tx).log({
+        actorId,
+        action: 'od_sheet.closed',
+        entityType: 'od_sheet',
+        entityId: id,
+        details: { event_id: sheet.event_id, club_id: sheet.club_id },
+      });
+      return result;
+    });
+  }
+
+  async facultyOdSheets(userId: string) {
+    if (!(await this.authz.hasRole(userId, 'faculty_coordinator'))) throw forbidden();
+    return this.repository.listFacultyOdSheets(userId);
+  }
+
+  async facultyOdSheetDetail(userId: string, id: string) {
+    const result = await this.repository.getOdSheet(id);
+    if (!result.sheet || !['CLOSED', 'APPROVED'].includes(result.sheet.status))
+      throw notFound('Closed OD participation list not found.');
+    const club = await this.repository.getClub(result.sheet.club_id);
+    if (!club?.is_active) throw notFound('Closed OD participation list not found.');
+    if (!(await this.authz.hasRole(userId, 'faculty_coordinator', result.sheet.club_id)))
+      throw notFound('Closed OD participation list not found.');
+    return result;
+  }
+
+  async approveOdSheet(reviewerId: string, id: string) {
+    const { sheet } = await this.facultyOdSheetDetail(reviewerId, id);
+    if (sheet.status !== 'CLOSED')
+      throw conflict('Only a closed participation list can be approved.');
+    return this.repository.transaction(async (tx) => {
+      const result = await (tx as M1Repository & EventRepository).approveOdSheet(reviewerId, id);
+      await new AuditService(tx).log({
+        actorId: reviewerId,
+        action: 'od_sheet.approved',
+        entityType: 'od_sheet',
+        entityId: id,
+        details: { event_id: sheet.event_id, club_id: sheet.club_id },
+      });
+      return result;
+    });
+  }
 }
 
 export function mapEventError(error: unknown): unknown {
@@ -340,6 +389,12 @@ export function mapEventError(error: unknown): unknown {
     return conflict('The event conflicts with an existing record.');
   const message = error instanceof Error ? error.message : '';
   if (/already registered|at capacity|duplicate/i.test(message)) return conflict(message);
+  if (
+    /only an open participation list|only a closed participation list|status transition/i.test(
+      message,
+    )
+  )
+    return conflict(message);
   if (/not found/i.test(message)) return notFound(message);
   if (
     /already registered|at capacity|cannot be changed|deadline|invalid|required|finalized|registered participant|OD sheets/i.test(
