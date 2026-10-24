@@ -878,7 +878,7 @@ export class PrismaM1Repository implements M1Repository {
         userId,
         clubId: null,
         status: 'active',
-        role: { code: { in: ['student', 'club_head', 'admin', 'global_admin'] } },
+        role: { code: { in: ['student', 'faculty', 'club_head', 'admin', 'global_admin'] } },
       },
       include: { role: { select: { code: true } } },
       orderBy: { createdAt: 'asc' },

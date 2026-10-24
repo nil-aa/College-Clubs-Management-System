@@ -29,7 +29,7 @@ export function RoleManagementPage() {
       supabase
         .from('roles')
         .select('*')
-        .in('code', ['student', 'club_head', 'admin', 'faculty_coordinator'])
+        .in('code', ['student', 'faculty', 'club_head', 'admin', 'faculty_coordinator'])
         .order('name'),
       supabase.from('clubs').select('id, name, status, is_active').order('name'),
       supabase.from('user_roles').select('*'),
@@ -218,6 +218,15 @@ export function RoleManagementPage() {
             {success}
           </p>
         )}
+        {!loading && !roles.some((role) => role.code === 'faculty_coordinator') && (
+          <p
+            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            role="status"
+          >
+            Faculty Coordinator assignment is unavailable because this database is missing its
+            migration. Apply the latest Supabase migrations, then refresh this page.
+          </p>
+        )}
         {loading ? (
           <div className="rounded-3xl bg-white p-8 text-slateDark">Loading users and roles…</div>
         ) : (
@@ -230,12 +239,16 @@ export function RoleManagementPage() {
                 {roles.map((role) => (
                   <div className="min-w-40 rounded-2xl bg-mint/60 px-4 py-3" key={role.id}>
                     <p className="text-xs font-bold uppercase tracking-wide text-slateDark/65">
-                      {role.name}
+                      {role.code === 'faculty_coordinator' ? 'Faculty Coordinators' : role.name}
                     </p>
                     <p className="mt-1 text-2xl font-bold text-slateDark">
                       {roleCounts.get(role.id)?.size ?? 0}
                     </p>
-                    <p className="text-xs text-slateDark/65">active users</p>
+                    <p className="text-xs text-slateDark/65">
+                      {role.code === 'faculty_coordinator'
+                        ? 'active club assignments'
+                        : 'active users'}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -303,7 +316,7 @@ export function RoleManagementPage() {
                 onRevokeFacultyCoordinator={handleRevokeFacultyCoordinator}
                 onRoleChange={handleRoleChange}
                 roles={roles.filter((role) =>
-                  ['student', 'club_head', 'admin'].includes(role.code),
+                  ['student', 'faculty', 'club_head', 'admin'].includes(role.code),
                 )}
                 facultyCoordinatorRoleId={facultyCoordinatorRoleId}
                 submitting={submitting}

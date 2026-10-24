@@ -24,6 +24,15 @@ const roles: Role[] = [
     created_at: '',
   },
   {
+    id: 'role-faculty',
+    code: 'faculty',
+    name: 'Faculty',
+    description: null,
+    is_global: true,
+    is_system: true,
+    created_at: '',
+  },
+  {
     id: 'role-admin',
     code: 'admin',
     name: 'Admin',
@@ -55,6 +64,17 @@ const baseProps = () => ({
 describe('RoleAssignmentForm', () => {
   beforeEach(() => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  it('offers Faculty as a global role separately from club-scoped coordinator access', () => {
+    const props = baseProps();
+    render(<RoleAssignmentForm {...props} />);
+
+    expect(screen.getByRole('option', { name: 'Faculty' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Assign Faculty Coordinator' })).toBeDisabled();
+    expect(
+      screen.getByText(/global Faculty role identifies a faculty account/i),
+    ).toBeInTheDocument();
   });
 
   it('assigns a selected club head scope', async () => {

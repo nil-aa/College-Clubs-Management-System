@@ -15,8 +15,13 @@ export class RoleManagementService {
     return this.repository.listRoleAssignments();
   }
 
-  async setRole(actorId: string, userId: string, role: 'student' | 'club_head' | 'admin') {
-    if (!['student', 'club_head', 'admin'].includes(role)) throw badRequest('Role is invalid.');
+  async setRole(
+    actorId: string,
+    userId: string,
+    role: 'student' | 'faculty' | 'club_head' | 'admin',
+  ) {
+    if (!['student', 'faculty', 'club_head', 'admin'].includes(role))
+      throw badRequest('Role is invalid.');
     if (!(await this.repository.getUser(userId))) throw notFound('User not found.');
     try {
       return await this.repository.transaction(async (transactionRepository) => {
